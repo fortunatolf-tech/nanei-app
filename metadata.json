@@ -1,0 +1,6 @@
+{
+  "name": "Nanei",
+  "description": "Aplicativo para mães e bebês: módulo de gravidez (semanas, mexidas, contrações e mala da maternidade), diário da mamãe e livro de memórias impresso em PDF, rastreamento de sono, saltos, medicamentos na amamentação e assistente IA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
