@@ -25,6 +25,9 @@ interface BabyDao {
     @Query("SELECT * FROM babies ORDER BY id ASC")
     fun getAllBabies(): Flow<List<Baby>>
 
+    @Query("SELECT * FROM babies")
+    suspend fun getAllBabiesSync(): List<Baby>
+
     @Query("SELECT * FROM babies WHERE isSelected = 1 LIMIT 1")
     fun getSelectedBaby(): Flow<Baby?>
 
@@ -33,6 +36,9 @@ interface BabyDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBaby(baby: Baby): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBabies(babies: List<Baby>)
 
     @Update
     suspend fun updateBaby(baby: Baby)
@@ -45,12 +51,18 @@ interface BabyDao {
 
     @Query("DELETE FROM babies WHERE id = :babyId")
     suspend fun deleteBaby(babyId: Long)
+
+    @Query("DELETE FROM babies")
+    suspend fun deleteAllBabies()
 }
 
 @Dao
 interface EventDao {
     @Query("SELECT * FROM events WHERE babyId = :babyId ORDER BY startTimeMs DESC")
     fun getEventsForBaby(babyId: Long): Flow<List<Event>>
+
+    @Query("SELECT * FROM events")
+    suspend fun getAllEventsSync(): List<Event>
 
     @Query("SELECT * FROM events WHERE babyId = :babyId AND startTimeMs >= :fromTimeMs ORDER BY startTimeMs DESC")
     fun getEventsSince(babyId: Long, fromTimeMs: Long): Flow<List<Event>>
@@ -64,6 +76,9 @@ interface EventDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvent(event: Event): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEvents(events: List<Event>)
+
     @Update
     suspend fun updateEvent(event: Event)
 
@@ -72,6 +87,9 @@ interface EventDao {
 
     @Query("DELETE FROM events WHERE babyId = :babyId")
     suspend fun deleteAllEventsForBaby(babyId: Long)
+
+    @Query("DELETE FROM events")
+    suspend fun deleteAllEvents()
 }
 
 @Dao
@@ -79,11 +97,17 @@ interface MilestoneDao {
     @Query("SELECT * FROM milestones WHERE babyId = :babyId ORDER BY targetAgeMonths ASC")
     fun getMilestonesForBaby(babyId: Long): Flow<List<Milestone>>
 
+    @Query("SELECT * FROM milestones")
+    suspend fun getAllMilestonesSync(): List<Milestone>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMilestones(milestones: List<Milestone>)
 
     @Update
     suspend fun updateMilestone(milestone: Milestone)
+
+    @Query("DELETE FROM milestones")
+    suspend fun deleteAllMilestones()
 }
 
 @Dao
@@ -91,14 +115,23 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE babyId = :babyId ORDER BY hour ASC, minute ASC")
     fun getRemindersForBaby(babyId: Long): Flow<List<Reminder>>
 
+    @Query("SELECT * FROM reminders")
+    suspend fun getAllRemindersSync(): List<Reminder>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReminder(reminder: Reminder): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertReminders(reminders: List<Reminder>)
 
     @Update
     suspend fun updateReminder(reminder: Reminder)
 
     @Delete
     suspend fun deleteReminder(reminder: Reminder)
+
+    @Query("DELETE FROM reminders")
+    suspend fun deleteAllReminders()
 }
 
 @Dao

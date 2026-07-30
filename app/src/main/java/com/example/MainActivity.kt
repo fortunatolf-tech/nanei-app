@@ -1,5 +1,6 @@
 package com.example
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,11 +16,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.AuditLog
-import com.example.ui.components.FamilyManagementDialog
-import com.example.ui.components.LogEventBottomSheet
-import com.example.ui.components.NaneiPaywallDialog
-import com.example.ui.components.OnboardingModal
-import com.example.ui.components.SoundListenModeDialog
+import com.example.data.model.EventType
+import com.example.ui.components.*
 import com.example.ui.screens.*
 import com.example.ui.theme.NaneiTheme
 import com.example.ui.viewmodel.NaneiDestination
@@ -32,6 +30,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        handleShortcutIntent(intent)
 
         setContent {
             val selectedBaby by viewModel.selectedBaby.collectAsStateWithLifecycle()
@@ -47,10 +47,14 @@ class MainActivity : ComponentActivity() {
             val activeLogDialogType by viewModel.activeLogDialogType.collectAsStateWithLifecycle()
             val isNightModeForce by viewModel.isNightModeForce.collectAsStateWithLifecycle()
             val isPremiumUser by viewModel.isPremiumUser.collectAsStateWithLifecycle()
+            val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
+            val userEmail by viewModel.userEmail.collectAsStateWithLifecycle()
             val showPaywallDialog by viewModel.showPaywallDialog.collectAsStateWithLifecycle()
             val showOnboarding by viewModel.showOnboarding.collectAsStateWithLifecycle()
             val showFamilyDialog by viewModel.showFamilyDialog.collectAsStateWithLifecycle()
             val showSoundListenDialog by viewModel.showSoundListenDialog.collectAsStateWithLifecycle()
+            val showCloudBackupDialog by viewModel.showCloudBackupDialog.collectAsStateWithLifecycle()
+            val lastCloudBackupTimeMs by viewModel.lastCloudBackupTimeMs.collectAsStateWithLifecycle()
 
             val gestationalWeek by viewModel.gestationalWeek.collectAsStateWithLifecycle()
             val kickSessions by viewModel.kickSessions.collectAsStateWithLifecycle()
@@ -58,6 +62,12 @@ class MainActivity : ComponentActivity() {
             val hospitalBagItems by viewModel.hospitalBagItems.collectAsStateWithLifecycle()
             val prenatalExams by viewModel.prenatalExams.collectAsStateWithLifecycle()
             val momJournalEntries by viewModel.momJournalEntries.collectAsStateWithLifecycle()
+
+            val babyShowerEvent by viewModel.babyShowerEvent.collectAsStateWithLifecycle()
+            val babyShowerGuests by viewModel.babyShowerGuests.collectAsStateWithLifecycle()
+            val babyShowerGifts by viewModel.babyShowerGifts.collectAsStateWithLifecycle()
+            val syncTestLogs by viewModel.syncTestLogs.collectAsStateWithLifecycle()
+            val isShowerSyncing by viewModel.isShowerSyncing.collectAsStateWithLifecycle()
 
             var showLgpdScreen by remember { mutableStateOf(false) }
 
@@ -83,8 +93,8 @@ class MainActivity : ComponentActivity() {
                                     onClick = { viewModel.selectDestination(NaneiDestination.HOME) },
                                     icon = {
                                         Icon(
-                                            imageVector = Icons.Default.Timeline,
-                                            contentDescription = "Linha do Tempo"
+                                            imageVector = Icons.Default.Home,
+                                            contentDescription = "Início"
                                         )
                                     },
                                     label = {
@@ -99,37 +109,57 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.testTag("nav_home")
                                 )
                                 NavigationBarItem(
-                                    selected = currentDestination == NaneiDestination.PREGNANCY,
-                                    onClick = { viewModel.selectDestination(NaneiDestination.PREGNANCY) },
+                                    selected = currentDestination == NaneiDestination.BABY_SHOWER,
+                                    onClick = { viewModel.selectDestination(NaneiDestination.BABY_SHOWER) },
                                     icon = {
                                         Icon(
-                                            imageVector = Icons.Default.PregnantWoman,
-                                            contentDescription = "Gravidez"
+                                            imageVector = Icons.Default.CardGiftcard,
+                                            contentDescription = "Chá & Eventos"
                                         )
                                     },
                                     label = {
                                         Text(
-                                            text = "Gravidez",
+                                            text = "Chá & Eventos",
                                             maxLines = 1,
                                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                             style = MaterialTheme.typography.labelSmall
                                         )
                                     },
                                     alwaysShowLabel = true,
-                                    modifier = Modifier.testTag("nav_pregnancy")
+                                    modifier = Modifier.testTag("nav_baby_shower")
+                                )
+                                NavigationBarItem(
+                                    selected = currentDestination == NaneiDestination.HEALTH,
+                                    onClick = { viewModel.selectDestination(NaneiDestination.HEALTH) },
+                                    icon = {
+                                        Icon(
+                                            imageVector = Icons.Default.MedicalServices,
+                                            contentDescription = "Saúde"
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            text = "Saúde",
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    },
+                                    alwaysShowLabel = true,
+                                    modifier = Modifier.testTag("nav_health")
                                 )
                                 NavigationBarItem(
                                     selected = currentDestination == NaneiDestination.MOM_JOURNAL,
                                     onClick = { viewModel.selectDestination(NaneiDestination.MOM_JOURNAL) },
                                     icon = {
                                         Icon(
-                                            imageVector = Icons.Default.Book,
-                                            contentDescription = "Diário"
+                                            imageVector = Icons.Default.PregnantWoman,
+                                            contentDescription = "Gestação"
                                         )
                                     },
                                     label = {
                                         Text(
-                                            text = "Diário",
+                                            text = "Gestação",
                                             maxLines = 1,
                                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                             style = MaterialTheme.typography.labelSmall
@@ -139,72 +169,11 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.testTag("nav_mom_journal")
                                 )
                                 NavigationBarItem(
-                                    selected = currentDestination == NaneiDestination.ANALYTICS,
-                                    onClick = { viewModel.selectDestination(NaneiDestination.ANALYTICS) },
-                                    icon = {
-                                        Icon(
-                                            imageVector = Icons.Default.BarChart,
-                                            contentDescription = "Análises"
-                                        )
-                                    },
-                                    label = {
-                                        Text(
-                                            text = "Análises",
-                                            maxLines = 1,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    },
-                                    alwaysShowLabel = true,
-                                    modifier = Modifier.testTag("nav_analytics")
-                                )
-
-                                NavigationBarItem(
-                                    selected = currentDestination == NaneiDestination.DEVELOPMENT,
-                                    onClick = { viewModel.selectDestination(NaneiDestination.DEVELOPMENT) },
-                                    icon = {
-                                        Icon(
-                                            imageVector = Icons.Default.AutoAwesome,
-                                            contentDescription = "Desenvolvimento"
-                                        )
-                                    },
-                                    label = {
-                                        Text(
-                                            text = "Marcos",
-                                            maxLines = 1,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    },
-                                    alwaysShowLabel = true,
-                                    modifier = Modifier.testTag("nav_development")
-                                )
-                                NavigationBarItem(
-                                    selected = currentDestination == NaneiDestination.MEDICATION,
-                                    onClick = { viewModel.selectDestination(NaneiDestination.MEDICATION) },
-                                    icon = {
-                                        Icon(
-                                            imageVector = Icons.Default.Medication,
-                                            contentDescription = "Medicamentos"
-                                        )
-                                    },
-                                    label = {
-                                        Text(
-                                            text = "Fármacos",
-                                            maxLines = 1,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    },
-                                    alwaysShowLabel = true,
-                                    modifier = Modifier.testTag("nav_medication")
-                                )
-                                NavigationBarItem(
                                     selected = currentDestination == NaneiDestination.AI_ASSISTANT,
                                     onClick = { viewModel.selectDestination(NaneiDestination.AI_ASSISTANT) },
                                     icon = {
                                         Icon(
-                                            imageVector = Icons.Default.Mic,
+                                            imageVector = Icons.Default.AutoAwesome,
                                             contentDescription = "IA Nanei"
                                         )
                                     },
@@ -240,51 +209,54 @@ class MainActivity : ComponentActivity() {
                                 onOpenAiAssistant = { viewModel.selectDestination(NaneiDestination.AI_ASSISTANT) },
                                 onOpenFamilyDialog = { viewModel.openFamilyDialog() },
                                 onOpenSoundListenDialog = { viewModel.openSoundListenDialog() },
+                                onOpenCloudBackupDialog = { viewModel.openCloudBackupDialog() },
                                 onOpenOnboarding = { viewModel.openOnboarding() },
                                 isPremiumUser = isPremiumUser,
                                 onOpenPaywall = { viewModel.openPaywall() },
                                 modifier = screenModifier
                             )
-                            NaneiDestination.PREGNANCY -> PregnancyScreen(
+                            NaneiDestination.BABY_SHOWER -> BabyShowerScreen(
+                                event = babyShowerEvent,
+                                guests = babyShowerGuests,
+                                gifts = babyShowerGifts,
+                                syncLogs = syncTestLogs,
+                                isSyncing = isShowerSyncing,
+                                userEmail = userEmail,
+                                onUpdateEvent = { newEvt -> viewModel.updateBabyShowerEvent(newEvt) },
+                                onAddGuest = { gst -> viewModel.addBabyShowerGuest(gst) },
+                                onUpdateGuestStatus = { id, st -> viewModel.updateGuestStatus(id, st) },
+                                onDeleteGuest = { id -> viewModel.deleteBabyShowerGuest(id) },
+                                onAddGift = { gft -> viewModel.addBabyShowerGift(gft) },
+                                onToggleGiftReservation = { id, name -> viewModel.toggleGiftReservation(id, name) },
+                                onRunSyncTests = { viewModel.runBabyShowerSyncTests() },
+                                modifier = screenModifier
+                            )
+                            NaneiDestination.HEALTH -> HealthScreen(
+                                baby = selectedBaby,
+                                events = events,
+                                milestones = milestones,
+                                searchQuery = drugQuery,
+                                filteredDrugs = filteredDrugs,
+                                onSearchQueryChange = { query -> viewModel.setDrugSearchQuery(query) },
+                                onToggleMilestone = { milestone -> viewModel.toggleMilestone(milestone) },
+                                isPremiumUser = isPremiumUser,
+                                onOpenPaywall = { viewModel.openPaywall() },
+                                modifier = screenModifier
+                            )
+                            NaneiDestination.MOM_JOURNAL -> PregnancyAndJournalScreen(
                                 currentWeek = gestationalWeek,
                                 kickSessions = kickSessions,
                                 contractions = contractions,
                                 hospitalBagItems = hospitalBagItems,
                                 prenatalExams = prenatalExams,
+                                babyName = selectedBaby?.name ?: "Bebê",
+                                journalEntries = momJournalEntries,
                                 onAddKickSession = { count, dur -> viewModel.addKickSession(count, dur) },
                                 onAddContraction = { dur, inter -> viewModel.addContraction(dur, inter) },
                                 onToggleBagItem = { id -> viewModel.toggleHospitalBagItem(id) },
                                 onToggleExam = { id -> viewModel.togglePrenatalExam(id) },
-                                onNavigateToJournal = { viewModel.selectDestination(NaneiDestination.MOM_JOURNAL) },
-                                modifier = screenModifier
-                            )
-                            NaneiDestination.MOM_JOURNAL -> MomJournalScreen(
-                                babyName = selectedBaby?.name ?: "Bebê",
-                                journalEntries = momJournalEntries,
-                                onAddEntry = { entry -> viewModel.addMomJournalEntry(entry) },
-                                onDeleteEntry = { entry -> viewModel.deleteMomJournalEntry(entry) },
-                                modifier = screenModifier
-                            )
-
-                            NaneiDestination.ANALYTICS -> AnalyticsScreen(
-                                baby = selectedBaby,
-                                events = events,
-                                isPremiumUser = isPremiumUser,
-                                onOpenPaywall = { viewModel.openPaywall() },
-                                modifier = screenModifier
-                            )
-                            NaneiDestination.DEVELOPMENT -> DevelopmentScreen(
-                                baby = selectedBaby,
-                                milestones = milestones,
-                                onToggleMilestone = { milestone -> viewModel.toggleMilestone(milestone) },
-                                modifier = screenModifier
-                            )
-                            NaneiDestination.MEDICATION -> MedicationScreen(
-                                searchQuery = drugQuery,
-                                filteredDrugs = filteredDrugs,
-                                onSearchQueryChange = { query -> viewModel.setDrugSearchQuery(query) },
-                                isPremiumUser = isPremiumUser,
-                                onOpenPaywall = { viewModel.openPaywall() },
+                                onAddJournalEntry = { entry -> viewModel.addMomJournalEntry(entry) },
+                                onDeleteJournalEntry = { entry -> viewModel.deleteMomJournalEntry(entry) },
                                 modifier = screenModifier
                             )
                             NaneiDestination.AI_ASSISTANT -> AiAssistantScreen(
@@ -328,10 +300,13 @@ class MainActivity : ComponentActivity() {
                 // F1 — Onboarding e Consentimento
                 if (showOnboarding) {
                     OnboardingModal(
+                        isLoggedIn = isLoggedIn,
+                        userEmail = userEmail,
+                        onPerformLogin = { email -> viewModel.performLogin(email) },
                         onDismiss = { viewModel.completeOnboarding() },
-                        onCompleteOnboarding = { babyName, birthMs, estMs, gender, avatarUri ->
+                        onCompleteOnboarding = { babyName, birthMs, estMs, gender, avatarUri, email ->
                             viewModel.addNewBaby(babyName, birthMs, estMs, gender, avatarUri)
-                            viewModel.completeOnboarding()
+                            viewModel.completeOnboarding(email)
                         }
                     )
                 }
@@ -339,6 +314,11 @@ class MainActivity : ComponentActivity() {
                 // F4 — Família & Cuidadores
                 if (showFamilyDialog) {
                     FamilyManagementDialog(
+                        userEmail = userEmail,
+                        onOpenCloudBackup = {
+                            viewModel.closeFamilyDialog()
+                            viewModel.openCloudBackupDialog()
+                        },
                         onDismiss = { viewModel.closeFamilyDialog() }
                     )
                 }
@@ -349,7 +329,50 @@ class MainActivity : ComponentActivity() {
                         onDismiss = { viewModel.closeSoundListenDialog() }
                     )
                 }
+
+                // Premium Cloud Backup & Phone Switch Restore
+                if (showCloudBackupDialog) {
+                    CloudBackupRestoreDialog(
+                        userEmail = userEmail,
+                        isPremiumUser = isPremiumUser,
+                        lastBackupTimeMs = lastCloudBackupTimeMs,
+                        onPerformBackup = { callback: (Boolean, String) -> Unit -> viewModel.performCloudBackup(callback) },
+                        onRestoreBackup = { targetEmail: String, customJson: String?, callback: (Boolean, String) -> Unit -> viewModel.restoreCloudBackup(targetEmail, customJson, callback) },
+                        onOpenPaywall = { viewModel.openPaywall() },
+                        onDismiss = { viewModel.closeCloudBackupDialog() }
+                    )
+                }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleShortcutIntent(intent)
+    }
+
+    private fun handleShortcutIntent(intent: Intent?) {
+        val action = intent?.getStringExtra("shortcut_action") ?: return
+        when (action) {
+            "LOG_FEEDING" -> {
+                viewModel.selectDestination(NaneiDestination.HOME)
+                viewModel.openLogDialog(EventType.BREASTFEEDING)
+            }
+            "OPEN_AI" -> {
+                viewModel.selectDestination(NaneiDestination.AI_ASSISTANT)
+            }
+            "OPEN_JOURNAL" -> {
+                viewModel.selectDestination(NaneiDestination.MOM_JOURNAL)
+            }
+            "LOG_DIAPER" -> {
+                viewModel.selectDestination(NaneiDestination.HOME)
+                viewModel.openLogDialog(EventType.DIAPER)
+            }
+            "OPEN_BABY_SHOWER" -> {
+                viewModel.selectDestination(NaneiDestination.BABY_SHOWER)
+            }
+        }
+        intent.removeExtra("shortcut_action")
     }
 }

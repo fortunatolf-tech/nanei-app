@@ -50,6 +50,7 @@ fun HomeScreen(
     onOpenAiAssistant: () -> Unit,
     onOpenFamilyDialog: () -> Unit = {},
     onOpenSoundListenDialog: () -> Unit = {},
+    onOpenCloudBackupDialog: () -> Unit = {},
     onOpenOnboarding: () -> Unit = {},
     isPremiumUser: Boolean = false,
     onOpenPaywall: () -> Unit = {},
@@ -179,6 +180,17 @@ fun HomeScreen(
                             imageVector = Icons.Default.Group,
                             contentDescription = "Família & Cuidadores",
                             tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onOpenCloudBackupDialog,
+                        modifier = Modifier.testTag("btn_topbar_cloud_backup")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudSync,
+                            contentDescription = "Backup em Nuvem / Troca de Celular",
+                            tint = if (isPremiumUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                         )
                     }
 

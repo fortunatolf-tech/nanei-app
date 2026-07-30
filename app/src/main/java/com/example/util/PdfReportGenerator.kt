@@ -7,6 +7,8 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
@@ -392,6 +394,85 @@ object PdfReportGenerator {
         }
     }
 
+    private fun wrapText(text: String, paint: Paint, maxWidth: Float): List<String> {
+        if (text.isBlank()) return emptyList()
+        val lines = mutableListOf<String>()
+        val paragraphs = text.split("\n")
+        for (paragraph in paragraphs) {
+            val words = paragraph.split(" ")
+            var currentLine = ""
+            for (word in words) {
+                val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
+                if (paint.measureText(testLine) <= maxWidth) {
+                    currentLine = testLine
+                } else {
+                    if (currentLine.isNotEmpty()) {
+                        lines.add(currentLine)
+                    }
+                    if (paint.measureText(word) > maxWidth) {
+                        var remaining = word
+                        while (remaining.isNotEmpty()) {
+                            val count = paint.breakText(remaining, true, maxWidth, null)
+                            lines.add(remaining.substring(0, count))
+                            remaining = remaining.substring(count)
+                        }
+                        currentLine = ""
+                    } else {
+                        currentLine = word
+                    }
+                }
+            }
+            if (currentLine.isNotEmpty()) {
+                lines.add(currentLine)
+            }
+        }
+        return lines
+    }
+
+    private fun loadHighQualityBitmap(context: Context, photoUrl: String, maxTargetW: Int, maxTargetH: Int): Bitmap? {
+        return try {
+            val uri = Uri.parse(photoUrl)
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeStream(inputStream, null, options)
+            inputStream.close()
+
+            val rawW = options.outWidth
+            val rawH = options.outHeight
+            if (rawW <= 0 || rawH <= 0) return null
+
+            // Target high density resolution (2x for PDF print rendering)
+            val renderW = maxTargetW * 2
+            val renderH = maxTargetH * 2
+
+            var sampleSize = 1
+            while (rawW / (sampleSize * 2) >= renderW && rawH / (sampleSize * 2) >= renderH) {
+                sampleSize *= 2
+            }
+
+            val decodeStream = context.contentResolver.openInputStream(uri) ?: return null
+            val decodeOptions = BitmapFactory.Options().apply {
+                inSampleSize = sampleSize
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+            }
+            val decoded = BitmapFactory.decodeStream(decodeStream, null, decodeOptions)
+            decodeStream.close()
+
+            if (decoded != null) {
+                val scale = Math.min(renderW.toFloat() / decoded.width, renderH.toFloat() / decoded.height)
+                val finalW = (decoded.width * scale).toInt().coerceAtLeast(1)
+                val finalH = (decoded.height * scale).toInt().coerceAtLeast(1)
+                Bitmap.createScaledBitmap(decoded, finalW, finalH, true)
+            } else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     fun generateAndShareMemoryBookPdf(
         context: Context,
         babyName: String,
@@ -409,114 +490,226 @@ object PdfReportGenerator {
             var page = pdfDocument.startPage(pageInfo)
             var canvas = page.canvas
 
-            val coverPaint = Paint().apply {
-                color = Color.parseColor("#E8DEF8")
+            // Color Palette for cozy maternal theme
+            val bgPaint = Paint().apply {
+                color = Color.parseColor("#FFFDF9") // Warm ivory background
                 style = Paint.Style.FILL
             }
 
+            val coverBannerPaint = Paint().apply {
+                color = Color.parseColor("#FFF1F2") // Soft rose blush banner
+                style = Paint.Style.FILL
+            }
+
+            val ribbonPaint = Paint().apply {
+                color = Color.parseColor("#FB7185") // Rose accent line
+                style = Paint.Style.STROKE
+                strokeWidth = 3f
+            }
+
             val titlePaint = Paint().apply {
-                color = Color.parseColor("#21005D")
-                textSize = 22f
+                color = Color.parseColor("#881337") // Deep rose burgundy
+                textSize = 20f
                 typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
                 isAntiAlias = true
             }
 
             val subtitlePaint = Paint().apply {
-                color = Color.parseColor("#6750A4")
-                textSize = 14f
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-                isAntiAlias = true
-            }
-
-            val textBoldPaint = Paint().apply {
-                color = Color.parseColor("#1D1B20")
+                color = Color.parseColor("#BE185D") // Warm rose
                 textSize = 12f
                 typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
                 isAntiAlias = true
             }
 
-            val textRegularPaint = Paint().apply {
-                color = Color.parseColor("#49454F")
+            val quotePaint = Paint().apply {
+                color = Color.parseColor("#9F1239")
+                textSize = 9.5f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
+                isAntiAlias = true
+            }
+
+            val cardBgPaint = Paint().apply {
+                color = Color.WHITE
+                style = Paint.Style.FILL
+            }
+
+            val cardBorderPaint = Paint().apply {
+                color = Color.parseColor("#FECDD3") // Soft rose card border
+                style = Paint.Style.STROKE
+                strokeWidth = 1.2f
+                isAntiAlias = true
+            }
+
+            val pillBgPaint = Paint().apply {
+                color = Color.parseColor("#FCE7F3") // Soft rose pill badge
+                style = Paint.Style.FILL
+            }
+
+            val pillTextPaint = Paint().apply {
+                color = Color.parseColor("#9D174D")
+                textSize = 9f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+            }
+
+            val dateTextPaint = Paint().apply {
+                color = Color.parseColor("#64748B")
+                textSize = 9f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                isAntiAlias = true
+            }
+
+            val entryTitlePaint = Paint().apply {
+                color = Color.parseColor("#1E293B")
+                textSize = 12f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+            }
+
+            val entryTextPaint = Paint().apply {
+                color = Color.parseColor("#334155")
                 textSize = 10f
                 typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
                 isAntiAlias = true
             }
 
-            val cardBgPaint = Paint().apply {
-                color = Color.parseColor("#F7F2FA")
-                style = Paint.Style.FILL
+            val photoFrameBorderPaint = Paint().apply {
+                color = Color.parseColor("#F472B6") // Soft rose photo border
+                style = Paint.Style.STROKE
+                strokeWidth = 1.5f
+                isAntiAlias = true
             }
 
-            // Cover Header
-            canvas.drawRect(0f, 0f, pageWidth.toFloat(), 180f, coverPaint)
-            canvas.drawText("LIVRO DE MEMÓRIAS DA GESTAÇÃO", 30f, 70f, titlePaint)
-            canvas.drawText("Diário da Mamãe & Registros de Amor para $babyName", 30f, 105f, subtitlePaint)
-            canvas.drawText("Gerado com carinho no App Nanei em ${dateFormat.format(Date())}", 30f, 140f, textRegularPaint)
+            val photoPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG or Paint.DITHER_FLAG).apply {
+                isFilterBitmap = true
+                isDither = true
+            }
 
-            var yPos = 210f
+            val footerTextPaint = Paint().apply {
+                color = Color.parseColor("#94A3B8")
+                textSize = 8.5f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                isAntiAlias = true
+            }
 
-            canvas.drawText("Capítulos & Minhas Memórias (${entries.size} registros)", 30f, yPos, titlePaint)
-            yPos += 30f
+            // Draw full page warm background
+            canvas.drawRect(0f, 0f, pageWidth.toFloat(), pageHeight.toFloat(), bgPaint)
+
+            // Draw Cover Header Banner
+            canvas.drawRect(0f, 0f, pageWidth.toFloat(), 160f, coverBannerPaint)
+            canvas.drawLine(0f, 160f, pageWidth.toFloat(), 160f, ribbonPaint)
+
+            canvas.drawText("🌸 LIVRO DE MEMÓRIAS DA GESTAÇÃO", 28f, 48f, titlePaint)
+            canvas.drawText("Diário de Amor & Acompanhamento de $babyName", 28f, 75f, subtitlePaint)
+            canvas.drawText("“Cada batida do coração, cada semana de gestação, um amor que cresce sem limites.”", 28f, 98f, quotePaint)
+            canvas.drawText("Gerado com carinho no App Nanei em ${dateFormat.format(Date())}", 28f, 125f, dateTextPaint)
+
+            var yPos = 185f
+
+            val chapterTitlePaint = Paint().apply {
+                color = Color.parseColor("#881337")
+                textSize = 14f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            canvas.drawText("💖 Recordações & Capítulo das Memórias (${entries.size} momentos)", 28f, yPos, chapterTitlePaint)
+            yPos += 22f
 
             for (entry in entries) {
-                var bitmapToDraw: Bitmap? = null
-                if (!entry.photoUrl.isNullOrEmpty()) {
-                    try {
-                        val uri = Uri.parse(entry.photoUrl)
-                        val inputStream = context.contentResolver.openInputStream(uri)
-                        if (inputStream != null) {
-                            val original = BitmapFactory.decodeStream(inputStream)
-                            inputStream.close()
-                            if (original != null) {
-                                val maxW = 120
-                                val maxH = 90
-                                val scale = Math.min(maxW.toFloat() / original.width, maxH.toFloat() / original.height)
-                                val w = (original.width * scale).toInt().coerceAtLeast(1)
-                                val h = (original.height * scale).toInt().coerceAtLeast(1)
-                                bitmapToDraw = Bitmap.createScaledBitmap(original, w, h, true)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
+                // High-fidelity Photo Loading
+                val bitmapToDraw = if (!entry.photoUrl.isNullOrEmpty()) {
+                    loadHighQualityBitmap(context, entry.photoUrl, maxTargetW = 160, maxTargetH = 120)
+                } else null
 
-                val cardHeight = if (bitmapToDraw != null) 120f else 100f
+                // Compute Layout
+                val hasPhoto = bitmapToDraw != null
+                val photoDisplayW = if (hasPhoto) 150f else 0f
+                val photoDisplayH = if (hasPhoto) {
+                    val aspect = bitmapToDraw!!.height.toFloat() / bitmapToDraw.width.toFloat()
+                    (photoDisplayW * aspect).coerceIn(80f, 120f)
+                } else 0f
 
-                if (yPos + cardHeight > pageHeight - 60f) {
-                    drawFooter(canvas, pageWidth, pageHeight, pageNumber, textRegularPaint)
+                val availableTextW = if (hasPhoto) (pageWidth - 56f - photoDisplayW - 35f) else (pageWidth - 76f)
+                val noteLines = wrapText(entry.notes, entryTextPaint, availableTextW)
+
+                val textContentH = noteLines.size * 14.5f
+                val minHeightForText = 50f + textContentH + 15f
+                val minHeightForPhoto = if (hasPhoto) photoDisplayH + 30f else 0f
+
+                val cardHeight = maxOf(minHeightForText, minHeightForPhoto, 85f)
+
+                // Check page height limit
+                if (yPos + cardHeight > pageHeight - 55f) {
+                    // Draw Footer on previous page
+                    canvas.drawText("🌸 Nanei App — Livro de Memórias de $babyName • Página $pageNumber", 28f, pageHeight - 20f, footerTextPaint)
                     pdfDocument.finishPage(page)
 
                     pageNumber++
                     pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
                     page = pdfDocument.startPage(pageInfo)
                     canvas = page.canvas
-                    yPos = 50f
+
+                    // Draw Page background and Mini Header on new page
+                    canvas.drawRect(0f, 0f, pageWidth.toFloat(), pageHeight.toFloat(), bgPaint)
+                    canvas.drawRect(0f, 0f, pageWidth.toFloat(), 40f, coverBannerPaint)
+                    canvas.drawLine(0f, 40f, pageWidth.toFloat(), 40f, ribbonPaint)
+                    canvas.drawText("🌸 Nanei — Livro de Memórias ($babyName) • Pág. $pageNumber", 28f, 26f, subtitlePaint)
+
+                    yPos = 55f
                 }
 
-                // Entry Card
-                canvas.drawRoundRect(30f, yPos, pageWidth - 30f, yPos + cardHeight, 12f, 12f, cardBgPaint)
+                // Draw Card Outer Box
+                val cardRect = RectF(28f, yPos, pageWidth - 28f, yPos + cardHeight)
+                canvas.drawRoundRect(cardRect, 14f, 14f, cardBgPaint)
+                canvas.drawRoundRect(cardRect, 14f, 14f, cardBorderPaint)
+
+                // Draw Gestational Week Pill Badge
+                val weekText = if (entry.gestationalWeek != null) "🌸 ${entry.gestationalWeek}ª SEMANA" else "💖 MEMÓRIA"
+                val pillWidth = pillTextPaint.measureText(weekText) + 16f
+                val pillRect = RectF(40f, yPos + 12f, 40f + pillWidth, yPos + 28f)
+                canvas.drawRoundRect(pillRect, 8f, 8f, pillBgPaint)
+                canvas.drawText(weekText, 48f, yPos + 23f, pillTextPaint)
+
+                // Category & Date Info
                 val dateStr = dateFormat.format(Date(entry.dateMs))
-                val weekStr = if (entry.gestationalWeek != null) " (${entry.gestationalWeek}ª Semana)" else ""
+                val categoryText = "🏷️ ${entry.category}  |  📅 $dateStr"
+                canvas.drawText(categoryText, 40f + pillWidth + 12f, yPos + 23f, dateTextPaint)
 
-                canvas.drawText("${entry.moodEmoji} ${entry.title}", 45f, yPos + 25f, textBoldPaint)
-                canvas.drawText("Data: $dateStr$weekStr | Categoria: ${entry.category}", 45f, yPos + 45f, subtitlePaint)
+                // Entry Title with Mood Emoji
+                val displayTitle = "${entry.moodEmoji} ${entry.title}"
+                canvas.drawText(truncateText(displayTitle, 40), 40f, yPos + 46f, entryTitlePaint)
 
-                val noteLines = entry.notes.chunked(if (bitmapToDraw != null) 45 else 70)
-                var lineY = yPos + 65f
-                for (line in noteLines.take(3)) {
-                    canvas.drawText(line, 45f, lineY, textRegularPaint)
-                    lineY += 15f
+                // Note Lines
+                var lineY = yPos + 63f
+                for (line in noteLines.take(8)) {
+                    canvas.drawText(line, 40f, lineY, entryTextPaint)
+                    lineY += 14.5f
                 }
 
-                if (bitmapToDraw != null) {
-                    canvas.drawBitmap(bitmapToDraw, pageWidth - 160f, yPos + 15f, null)
+                // Render Photo (High Quality, Framed with Rounded Corners)
+                if (hasPhoto && bitmapToDraw != null) {
+                    val photoLeft = pageWidth - 28f - 12f - photoDisplayW
+                    val photoTop = yPos + 12f
+                    val photoRect = RectF(photoLeft, photoTop, photoLeft + photoDisplayW, photoTop + photoDisplayH)
+
+                    val photoPath = Path().apply {
+                        addRoundRect(photoRect, 10f, 10f, Path.Direction.CW)
+                    }
+
+                    canvas.save()
+                    canvas.clipPath(photoPath)
+                    canvas.drawBitmap(bitmapToDraw, null, photoRect, photoPaint)
+                    canvas.restore()
+
+                    // Photo Border Line
+                    canvas.drawRoundRect(photoRect, 10f, 10f, photoFrameBorderPaint)
                 }
 
-                yPos += cardHeight + 15f
+                yPos += cardHeight + 14f
             }
 
-            drawFooter(canvas, pageWidth, pageHeight, pageNumber, textRegularPaint)
+            // Draw Footer on Last Page
+            canvas.drawText("🌸 Nanei App — Livro de Memórias de $babyName • Página $pageNumber", 28f, pageHeight - 20f, footerTextPaint)
             pdfDocument.finishPage(page)
 
             val file = File(context.cacheDir, "livro_de_memorias_nanei.pdf")

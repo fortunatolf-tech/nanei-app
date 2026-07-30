@@ -253,6 +253,11 @@ fun NaneiPaywallDialog(
             )
             PremiumFeatureItem(
                 icon = Icons.Default.CloudSync,
+                title = "Backup & Troca de Celular",
+                subtitle = "Recupere todos os dados do bebê no novo smartphone ou restaure a qualquer momento."
+            )
+            PremiumFeatureItem(
+                icon = Icons.Default.Group,
                 title = "Sincronização Familiar em Nuvem",
                 subtitle = "Mães, pais e cuidadores atualizados no mesmo dispositivo em tempo real."
             )

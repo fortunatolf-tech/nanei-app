@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidade e LGPD | Nanei - Acompanhamento da Gestação e Bebê</title>
+    <meta name="description" content="Política de Privacidade oficial do Nanei (nanei.com.br). Saiba como tratamos seus dados e os dados do seu bebê com total transparência e conformidade com a LGPD (Lei nº 13.709/2018).">
+    <link rel="canonical" href="https://www.nanei.com.br/privacidade">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',  100: '#ffe4e6', 200: '#fecdd3',
+                            300: '#fda4af', 400: '#fb7185', 500: '#f43f5e',
+                            600: '#e11d48', 700: '#be123c', 800: '#9f1239',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --primary: #f43f5e;
+            --primary-dark: #e11d48;
+            --primary-light: #fff1f2;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --bg-body: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --border-color: #E2E8F0;
+            --accent-pink: #EC4899;
+            --accent-teal: #0D9488;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Bar Header */
+        header.site-header {
+            background-color: #FFFFFF;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .header-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+
+        .brand-logo .logo-badge {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-pink));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFF;
+            font-weight: 800;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
+        }
+
+        .brand-logo .logo-text {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--primary-dark), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg-body);
+            border-color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #FFFFFF;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Banner Hero */
+        .hero-banner {
+            background: linear-gradient(135deg, #F5F3FF 0%, #FDF2F8 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 3rem 1.5rem;
+            text-align: center;
+        }
+
+        .hero-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .pill-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.85rem;
+            background-color: rgba(139, 92, 246, 0.12);
+            color: var(--primary-dark);
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+        }
+
+        .hero-title {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.025em;
+            margin-bottom: 0.75rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            max-width: 650px;
+            margin: 0 auto 1.5rem auto;
+        }
+
+        .metadata-row {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+
+        /* Main Content Layout */
+        .content-container {
+            max-width: 1100px;
+            margin: 2.5rem auto;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2.5rem;
+        }
+
+        @media (max-width: 850px) {
+            .content-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: sticky;
+            top: 5rem;
+            height: fit-content;
+        }
+
+        .toc-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .toc-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+        }
+
+        .toc-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toc-list a {
+            text-decoration: none;
+            font-size: 0.875rem;
+            color: var(--text-main);
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            display: block;
+        }
+
+        .toc-list a:hover {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+
+        /* Legal Content Body */
+        .legal-body {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        @media (max-width: 600px) {
+            .legal-body {
+                padding: 1.5rem;
+            }
+        }
+
+        .legal-section {
+            margin-bottom: 2.5rem;
+            scroll-margin-top: 6rem;
+        }
+
+        .legal-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 0.5rem;
+        }
+
+        .section-number {
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            font-size: 0.975rem;
+            color: #334155;
+        }
+
+        ul, ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            color: #334155;
+            font-size: 0.975rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Highlighting Callout Boxes */
+        .highlight-box {
+            background-color: #EFF6FF;
+            border-left: 4px solid #3B82F6;
+            border-radius: 0 12px 12px 0;
+            padding: 1.25rem;
+            margin: 1.25rem 0;
+            font-size: 0.925rem;
+        }
+
+        .highlight-box.lgpd-art14 {
+            background-color: #FDF2F8;
+            border-left-color: var(--accent-pink);
+        }
+
+        .highlight-box.security {
+            background-color: #F0FDF4;
+            border-left-color: var(--accent-teal);
+        }
+
+        .box-title {
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Footer */
+        footer.site-footer {
+            background-color: #FFFFFF;
+            border-top: 1px solid var(--border-color);
+            padding: 2.5rem 1.5rem;
+            margin-top: 4rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+        /* Print styles */
+        @media print {
+            header.site-header, .sidebar, .header-actions, .site-footer {
+                display: none !important;
+            }
+            .content-container {
+                display: block;
+                margin: 0;
+                padding: 0;
+            }
+            .legal-body {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+            }
+            body {
+                background: #FFF;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navbar -->
+    <header class="site-header">
+        <div class="header-container">
+            <a href="https://www.nanei.com.br" class="brand-logo">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-500 to-purple-500 flex items-center justify-center text-white text-xl shadow-md">🌙</div>
+                <span class="logo-text">Nanei</span>
+            </a>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="window.print()">
+                    🖨️ Imprimir / PDF
+                </button>
+                <a href="https://www.nanei.com.br" class="btn btn-primary">
+                    Voltar ao Site
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Header -->
+    <div class="hero-banner">
+        <div class="hero-container">
+            <div class="pill-badge">
+                🛡️ Transparência & Proteção
+            </div>
+            <h1 class="hero-title">Política de Privacidade e Proteção de Dados</h1>
+            <p class="hero-subtitle">
+                No Nanei, o cuidado com a sua família vem em primeiro lugar. Esta política descreve como tratamos e protegemos seus dados pessoais e os do seu bebê em conformidade total com a Lei Geral de Proteção de Dados (LGPD).
+            </p>
+            <div class="metadata-row">
+                <span>🗓️ <strong>Última Atualização:</strong> 30 de Julho de 2026</span>
+                <span>⚖️ <strong>Conformidade:</strong> LGPD (Lei nº 13.709/2018)</span>
+                <span>🌐 <strong>Domínio:</strong> www.nanei.com.br</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="content-container">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="toc-card">
+                <div class="toc-title">Navegação Rápida</div>
+                <ul class="toc-list">
+                    <li><a href="#sec-1">1. Apresentação</a></li>
+                    <li><a href="#sec-2">2. Proteção do Bebê (Art. 14)</a></li>
+                    <li><a href="#sec-3">3. Dados Coletados</a></li>
+                    <li><a href="#sec-4">4. Finalidades de Uso</a></li>
+                    <li><a href="#sec-5">5. Chá de Bebê & Webhooks</a></li>
+                    <li><a href="#sec-6">6. Segurança (AES-256)</a></li>
+                    <li><a href="#sec-7">7. Compartilhamento de Dados</a></li>
+                    <li><a href="#sec-8">8. Seus Direitos (LGPD)</a></li>
+                    <li><a href="#sec-9">9. Exclusão e Purga</a></li>
+                    <li><a href="#sec-10">10. Atalhos & Acessibilidade</a></li>
+                    <li><a href="#sec-11">11. Contato do DPO</a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="legal-body">
+
+            <!-- Section 1 -->
+            <section id="sec-1" class="legal-section">
+                <h2 class="section-title"><span class="section-number">1.</span> Apresentação e Compromisso</h2>
+                <p>
+                    A plataforma <strong>Nanei</strong> (compreendendo o aplicativo para dispositivos móveis Android/iOS e o portal web acessível em <code>https://www.nanei.com.br</code>) tem o compromisso inegociável de proteger a privacidade e a segurança dos dados pessoais de gestantes, pais, cuidadores, convidados e crianças.
+                </p>
+                <p>
+                    Todas as nossas operações de tratamento de dados cumprem rigorosamente a <strong>Lei Geral de Proteção de Dados Pessoais (LGPD - Lei nº 13.709/2018)</strong>, priorizando os princípios da finalidade, adequação, necessidade, livre acesso, qualidade dos dados, transparência, segurança, prevenção e não discriminação.
+                </p>
+            </section>
+
+            <!-- Section 2 -->
+            <section id="sec-2" class="legal-section">
+                <h2 class="section-title"><span class="section-number">2.</span> Tratamento de Dados de Crianças e Bebês (Art. 14 da LGPD)</h2>
+                <p>
+                    O Nanei é projetado para apoiar as famílias desde a gestação até o crescimento da criança. De acordo com o <strong>Art. 14 da Lei nº 13.709/2018</strong>, o tratamento de dados pessoais de crianças (menores de 12 anos) deve ser realizado em seu <strong>melhor interesse</strong> e mediante o <strong>consentimento específico e em destaque fornecido por pelo menos um dos pais ou pelo responsável legal</strong>.
+                </p>
+
+                <div class="highlight-box lgpd-art14">
+                    <div class="box-title">👶 Compromisso Especial com a Criança (Art. 14 LGPD)</div>
+                    <p style="margin-bottom:0;">
+                        Os dados do seu bebê (como nome, data de nascimento, medições corporais, registros de amamentação e marcos de desenvolvimento) são mantidos em ambiente seguro e <strong>nunca serão comercializados, transferidos a terceiros para fins publicitários ou utilizados para perfilamento comercial</strong>.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Section 3 -->
+            <section id="sec-3" class="legal-section">
+                <h2 class="section-title"><span class="section-number">3.</span> Dados Pessoais Coletados</h2>
+                <p>Coletamos apenas os dados estritamente necessários para prestar nossos serviços:</p>
+                <ul>
+                    <li><strong>Dados do Responsável / Usuário:</strong> Nome completo, e-mail, fotografia de perfil (opcional), senha criptografada e preferências de contato.</li>
+                    <li><strong>Dados do Bebê e Gestação:</strong> Semanas de gestação, histórico de contador de chutes, registro de contrações, lista de mala da maternidade, peso, altura, perímetro cefálico, horários de amamentação e sono, vacinas e registros no Diário da Mamãe.</li>
+                    <li><strong>Dados do Chá de Bebê e Eventos:</strong> Nome do evento, data e horário, local/link do evento online, lista de convidados (nome, telefone e status de confirmação RSVP) e lista de presentes.</li>
+                    <li><strong>Dados Técnicos e AuditLog:</strong> Endereço IP, modelo do dispositivo, sistema operacional, logs de auditoria de consentimento e tokens para notificações push.</li>
+                </ul>
+            </section>
+
+            <!-- Section 4 -->
+            <section id="sec-4" class="legal-section">
+                <h2 class="section-title"><span class="section-number">4.</span> Finalidades do Tratamento de Dados</h2>
+                <p>Os dados coletados são tratados exclusivamente para as seguintes finalidades legítimas:</p>
+                <ol>
+                    <li>Acompanhar a evolução gestacional e o crescimento saudável do bebê.</li>
+                    <li>Sincronizar a lista de convidados e presentes do Chá de Bebê com a sua página personalizada no <code>nanei.com.br</code>.</li>
+                    <li>Gerar relatórios de saúde, curvas de crescimento OMS e o <em>Livro de Memórias da Mamãe</em> em formato PDF impresso/digital.</li>
+                    <li>Fornecer orientações seguras via Assistente IA Nanei (as perguntas enviadas à IA são anonimizadas e não alimentam modelos de treino público).</li>
+                    <li>Cumprir obrigações legais e manter registros de auditoria de segurança (AuditLog).</li>
+                </ol>
+            </section>
+
+            <!-- Section 5 -->
+            <section id="sec-5" class="legal-section">
+                <h2 class="section-title"><span class="section-number">5.</span> Integração do Chá de Bebê & Webhooks (nanei.com.br)</h2>
+                <p>
+                    Para mães e pais que utilizam o recurso de <strong>Chá de Bebê Integrado</strong>, o aplicativo conecta-se diretamente ao domínio <code>nanei.com.br</code> via API REST segura e Webhooks.
+                </p>
+                <p>
+                    As informações de confirmação de presença (RSVP) e reserva de presentes feitas por convidados no site são transmitidas em tempo real para o seu aplicativo móvel, protegidas por autenticação via chave API única e assinatura de webhook SHA-256.
+                </p>
+            </section>
+
+            <!-- Section 6 -->
+            <section id="sec-6" class="legal-section">
+                <h2 class="section-title"><span class="section-number">6.</span> Armazenamento e Criptografia (AES-256 & TLS 1.3)</h2>
+                <div class="highlight-box security">
+                    <div class="box-title">🔒 Segurança da Informação de Nível Bancário</div>
+                    <p style="margin-bottom:0;">
+                        Todos os dados trafegados entre seu aplicativo e os servidores do Nanei utilizam protocolo criptografado <strong>TLS 1.3 (HTTPS)</strong>. Os dados sensíveis armazenados em banco de dados possuem criptografia de ponta a ponta com algoritmo <strong>AES-256</strong>.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Section 7 -->
+            <section id="sec-7" class="legal-section">
+                <h2 class="section-title"><span class="section-number">7.</span> Compartilhamento e Não-Comercialização</h2>
+                <p>
+                    <strong>O Nanei NÃO vende, NÃO aluga e NÃO compartilha dados pessoais ou do seu bebê com corretores de dados, anunciantes ou redes de publicidade.</strong>
+                </p>
+                <p>
+                    O compartilhamento ocorre unicamente com prestadores de serviços essenciais à operação (infraestrutura de nuvem com certificação ISO 27001 e processadores de envio de e-mails transacionais), todos submetidos a contratos com obrigações estritas de sigilo e conformidade com a LGPD.
+                </p>
+            </section>
+
+            <!-- Section 8 -->
+            <section id="sec-8" class="legal-section">
+                <h2 class="section-title"><span class="section-number">8.</span> Seus Direitos como Titular dos Dados (Art. 18 LGPD)</h2>
+                <p>Na forma do Art. 18 da LGPD, você pode exercer os seguintes direitos diretamente no aplicativo Nanei ou em nosso site:</p>
+                <ul>
+                    <li><strong>Confirmação e Acesso:</strong> Verificar a existência de tratamento e acessar uma cópia completa dos seus dados.</li>
+                    <li><strong>Correção:</strong> Solicitar a atualização de dados incompletos, inexatos ou desatualizados.</li>
+                    <li><strong>Exportação e Portabilidade:</strong> Baixar todos os registros (diário, medições e eventos) nos formatos CSV, JSON ou PDF.</li>
+                    <li><strong>Revogação do Consentimento:</strong> Alterar a qualquer momento suas permissões nas configurações do aplicativo.</li>
+                </ul>
+            </section>
+
+            <!-- Section 9 -->
+            <section id="sec-9" class="legal-section">
+                <h2 class="section-title"><span class="section-number">9.</span> Exclusão Definitiva de Conta e Purga de Dados</h2>
+                <p>
+                    Você tem o direito de solicitar a exclusão definitiva da sua conta a qualquer momento. Ao confirmar a exclusão no aplicativo ou pelo e-mail do DPO, todos os seus dados pessoais e os registros do bebê serão marcados para eliminação irreversível (purga total efetuada no ciclo máximo de até 30 dias, ressalvadas as obrigações legais de guarda previstos no Marco Civil da Internet).
+                </p>
+            </section>
+
+            <!-- Section 10 -->
+            <section id="sec-10" class="legal-section">
+                <h2 class="section-title"><span class="section-number">10.</span> Atalhos da Tela Inicial (App Shortcuts) e Acessibilidade Rápida</h2>
+                <p>
+                    Para garantir acessibilidade imediata nos momentos mais exigentes da rotina de cuidados com o bebê (como amamentações de madrugada ou trocas de fralda urgentes), o aplicativo Nanei oferece <strong>Atalhos Nativos na Tela Inicial do Android (App Shortcuts)</strong>.
+                </p>
+                <div class="highlight-box security">
+                    <div class="box-title">⚡ Como Acessar e Usar os Atalhos Rápidos</div>
+                    <p style="margin-bottom:0.5rem;">
+                        <strong>• Como utilizar:</strong> Pressione e segure o ícone do aplicativo Nanei na tela inicial do seu celular para abrir o menu suspenso de ações rápidas:
+                    </p>
+                    <ul style="margin-bottom:0.5rem;">
+                        <li>🍼 <strong>Nova Mamada:</strong> Inicia imediatamente o registro de amamentação ou mamadeira.</li>
+                        <li>🤖 <strong>IA Nanei:</strong> Abre diretamente a conversa com o assistente de inteligência artificial.</li>
+                        <li>👶 <strong>Troca de Fralda:</strong> Registra instantaneamente a troca de fralda.</li>
+                        <li>🎁 <strong>Chá de Bebê:</strong> Acessa a lista de convidados e presentes em tempo real.</li>
+                    </ul>
+                    <p style="margin-bottom:0;">
+                        <strong>• Importância da Atualização:</strong> Manter os atalhos e o aplicativo atualizados é fundamental para assegurar a menor latência possível e a integração contínua com os recursos de acessibilidade do sistema Android (como leitores de tela e comandos de voz), permitindo registrar eventos essenciais em apenas 2 toques.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Section 11 -->
+            <section id="sec-11" class="legal-section">
+                <h2 class="section-title"><span class="section-number">11.</span> Encarregado de Proteção de Dados (DPO) e Contato</h2>
+                <p>
+                    Se você tiver dúvidas, solicitações de direitos ou precisar se comunicar com nosso Encarregado de Proteção de Dados (DPO), utilize os canais oficiais abaixo:
+                </p>
+                <div style="background-color: var(--primary-light); padding: 1.25rem; border-radius: 12px; margin-top: 1rem;">
+                    <p style="margin-bottom:0.4rem;">📧 <strong>E-mail do DPO:</strong> <a href="mailto:privacidade@nanei.com.br" style="color: var(--primary-dark); font-weight: 700;">privacidade@nanei.com.br</a></p>
+                    <p style="margin-bottom:0.4rem;">💬 <strong>Atendimento e Suporte:</strong> <a href="mailto:suporte@nanei.com.br" style="color: var(--primary-dark); font-weight: 700;">suporte@nanei.com.br</a></p>
+                    <p style="margin-bottom:0;">🌐 <strong>Website Oficial:</strong> <a href="https://www.nanei.com.br" style="color: var(--primary-dark); font-weight: 700;">https://www.nanei.com.br</a></p>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-links">
+            <a href="https://www.nanei.com.br">Início</a>
+            <a href="https://www.nanei.com.br/cha-de-bebe">Chá de Bebê</a>
+            <a href="https://www.nanei.com.br/privacidade">Política de Privacidade</a>
+            <a href="mailto:privacidade@nanei.com.br">Contato DPO</a>
+        </div>
+        <p>&copy; 2026 Nanei — Todos os direitos reservados. Feito com amor para mães e bebês.</p>
+    </footer>
+
+</body>
+</html>

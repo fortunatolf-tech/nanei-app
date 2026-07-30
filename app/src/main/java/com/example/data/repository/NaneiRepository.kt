@@ -145,6 +145,44 @@ class NaneiRepository(private val db: NaneiDatabase) {
         auditLogDao.insertAuditLog(AuditLog(action = "PURGE_BABY_DATA", details = "Dados do bebê $babyId excluídos totalmente"))
     }
 
+    // --- Bulk Database Backup & Restore (Premium Cloud Sync) ---
+    suspend fun getAllBabiesSync(): List<Baby> = babyDao.getAllBabiesSync()
+    suspend fun getAllEventsSync(): List<Event> = eventDao.getAllEventsSync()
+    suspend fun getAllMilestonesSync(): List<Milestone> = milestoneDao.getAllMilestonesSync()
+    suspend fun getAllRemindersSync(): List<Reminder> = reminderDao.getAllRemindersSync()
+
+    suspend fun restoreAllEntitiesSync(
+        babies: List<Baby>,
+        events: List<Event>,
+        milestones: List<Milestone>,
+        reminders: List<Reminder>
+    ) {
+        if (babies.isNotEmpty()) {
+            babyDao.deleteAllBabies()
+            babyDao.insertBabies(babies)
+            val selected = babies.find { it.isSelected } ?: babies.first()
+            babyDao.setSelectedBaby(selected.id)
+        }
+        if (events.isNotEmpty()) {
+            eventDao.deleteAllEvents()
+            eventDao.insertEvents(events)
+        }
+        if (milestones.isNotEmpty()) {
+            milestoneDao.deleteAllMilestones()
+            milestoneDao.insertMilestones(milestones)
+        }
+        if (reminders.isNotEmpty()) {
+            reminderDao.deleteAllReminders()
+            reminderDao.insertReminders(reminders)
+        }
+        auditLogDao.insertAuditLog(
+            AuditLog(
+                action = "RESTORE_CLOUD_BACKUP",
+                details = "Restaurados ${babies.size} bebês, ${events.size} eventos, ${milestones.size} marcos e ${reminders.size} lembretes."
+            )
+        )
+    }
+
     // --- SweetSpot Sleep Algorithm (SLP) ---
     suspend fun calculateSweetSpot(baby: Baby): SweetSpotPrediction {
         val ageMs = System.currentTimeMillis() - baby.birthDateMs

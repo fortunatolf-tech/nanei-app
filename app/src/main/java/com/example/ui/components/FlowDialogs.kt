@@ -36,13 +36,17 @@ import coil.compose.AsyncImage
 @Composable
 fun OnboardingModal(
     onDismiss: () -> Unit,
-    onCompleteOnboarding: (babyName: String, birthMs: Long, estMs: Long, gender: String, avatarUri: String?) -> Unit
+    isLoggedIn: Boolean = false,
+    userEmail: String = "",
+    onPerformLogin: (email: String) -> Unit = {},
+    onCompleteOnboarding: (babyName: String, birthMs: Long, estMs: Long, gender: String, avatarUri: String?, userEmail: String) -> Unit
 ) {
     var step by remember { mutableIntStateOf(1) } // 1: Welcome/Auth, 2: Consents, 3: Baby Details, 4: Tour & PWA
 
     // Form states
-    var email by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(userEmail) }
     var password by remember { mutableStateOf("") }
+    var loginSavedSuccess by remember { mutableStateOf(isLoggedIn) }
 
     // Consents
     var consentBabyData by remember { mutableStateOf(true) } // MANDATORY LGPD Art. 14
@@ -108,7 +112,7 @@ fun OnboardingModal(
 
             when (step) {
                 1 -> {
-                    // Step 1: Welcome & Account Creation (F1)
+                    // Step 1: Welcome & Account Creation / Persistent Login
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
@@ -142,7 +146,61 @@ fun OnboardingModal(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Info card explaining login persistence
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Login único: após entrar pela 1ª vez, suas credenciais ficam salvas no dispositivo. O app nunca mais pedirá senha!",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        if (loginSavedSuccess) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.tertiary
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Conectado como: ${if (email.isBlank()) userEmail else email}\nSua sessão foi mantida permanentemente neste aparelho.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
 
                         OutlinedTextField(
                             value = email,
@@ -167,14 +225,21 @@ fun OnboardingModal(
                         Spacer(modifier = Modifier.height(20.dp))
 
                         Button(
-                            onClick = { step = 2 },
+                            onClick = {
+                                val targetEmail = if (email.isBlank()) "usuario@nanei.app" else email.trim()
+                                onPerformLogin(targetEmail)
+                                loginSavedSuccess = true
+                                step = 2
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp)
                                 .testTag("btn_onboarding_step1_next"),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Criar Conta e Continuar", fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Fazer Login e Salvar no Aparelho", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -413,7 +478,8 @@ fun OnboardingModal(
                         Button(
                             onClick = {
                                 val now = System.currentTimeMillis()
-                                onCompleteOnboarding(babyName, now, now, gender, photoUri?.toString())
+                                val targetEmail = if (email.isBlank()) "usuario@nanei.app" else email.trim()
+                                onCompleteOnboarding(babyName, now, now, gender, photoUri?.toString(), targetEmail)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -522,6 +588,8 @@ private fun TourStepItem(stepNumber: String, title: String, description: String)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FamilyManagementDialog(
+    userEmail: String = "usuario@nanei.app",
+    onOpenCloudBackup: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     var emailInput by remember { mutableStateOf("") }
@@ -540,6 +608,48 @@ fun FamilyManagementDialog(
         },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                // Cloud Backup & Phone Switch Banner
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onOpenCloudBackup() }
+                        .testTag("btn_open_cloud_backup_from_family")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudSync,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Troca de Celular & Backup Nuvem ☁️",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "Recuperação automática de dados para assinantes Premium.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
                 Text(
                     text = "Convide mães, pais, avós ou babás para sincronizar registros em tempo real.",
                     style = MaterialTheme.typography.bodySmall,
@@ -629,7 +739,7 @@ fun FamilyManagementDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                CaregiverMemberItem("Você (Dispositivo Principal)", "Admin", "🟢 Conectado")
+                CaregiverMemberItem("Você ($userEmail)", "Admin", "🟢 Sessão Salva")
             }
         },
         confirmButton = {
@@ -752,6 +862,301 @@ fun SoundListenModeDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) { Text("Concluído") }
+        }
+    )
+}
+
+/**
+ * Backup em Nuvem e Recuperação de Dados para Troca de Celular (Recurso Premium)
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CloudBackupRestoreDialog(
+    userEmail: String,
+    isPremiumUser: Boolean,
+    lastBackupTimeMs: Long,
+    onPerformBackup: ((Boolean, String) -> Unit) -> Unit,
+    onRestoreBackup: (String, String?, (Boolean, String) -> Unit) -> Unit,
+    onOpenPaywall: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var restoreEmailInput by remember { mutableStateOf(userEmail) }
+    var customJsonInput by remember { mutableStateOf("") }
+    var showAdvancedJson by remember { mutableStateOf(false) }
+
+    var isProcessing by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    var isSuccessStatus by remember { mutableStateOf(true) }
+
+    val formattedLastBackup = remember(lastBackupTimeMs) {
+        if (lastBackupTimeMs > 0) {
+            val sdf = java.text.SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", java.util.Locale.getDefault())
+            sdf.format(java.util.Date(lastBackupTimeMs))
+        } else {
+            "Nenhum backup em nuvem registrado nesta conta"
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.CloudSync,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Recuperação de Dados (Troca de Celular)")
+            }
+        },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = "Proteja os registros do seu bebê e transfira tudo facilmente ao trocar de smartphone.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Account & Premium Status Card
+                Surface(
+                    color = if (isPremiumUser) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Conta: ${userEmail.ifBlank { "usuario@nanei.app" }}",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Surface(
+                                color = if (isPremiumUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = if (isPremiumUser) "PREMIUM ✨" else "FREE 🔒",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "Último backup em nuvem: $formattedLastBackup",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                if (!isPremiumUser) {
+                    // Paywall Callout for Free Users
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpenPaywall() }
+                            .testTag("btn_upgrade_for_cloud_backup"),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Recurso Exclusivo Nanei Premium",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Text(
+                                    text = "Toque aqui para assinar o Plano Premium e liberar o backup e recuperação automática em múltiplos aparelhos.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
+
+                // Status Alert Card (if any operation performed)
+                if (statusMessage != null) {
+                    Surface(
+                        color = if (isSuccessStatus) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (isSuccessStatus) Icons.Default.CheckCircle else Icons.Default.Error,
+                                contentDescription = null,
+                                tint = if (isSuccessStatus) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = statusMessage ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isSuccessStatus) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+
+                // Section 1: Backup Current Phone Data
+                Text(
+                    text = "1. Salvar Dados na Nuvem (Celular Atual)",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Envia uma cópia completa de bebês, rotina de amamentação, vacinas e diário para o seu e-mail.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = {
+                        isProcessing = true
+                        onPerformBackup { success, msg ->
+                            isProcessing = false
+                            isSuccessStatus = success
+                            statusMessage = msg
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("btn_do_cloud_backup"),
+                    enabled = !isProcessing,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Fazer Backup em Nuvem Agora")
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Section 2: Restore Data on New Phone
+                Text(
+                    text = "2. Restaurar Dados (Novo Celular)",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Digite o e-mail cadastrado no seu aparelho antigo para puxar todo o histórico salvo.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = restoreEmailInput,
+                    onValueChange = { restoreEmailInput = it },
+                    label = { Text("E-mail da Conta") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_restore_email")
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Button(
+                    onClick = {
+                        isProcessing = true
+                        onRestoreBackup(restoreEmailInput.trim(), customJsonInput.ifBlank { null }) { success, msg ->
+                            isProcessing = false
+                            isSuccessStatus = success
+                            statusMessage = msg
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("btn_do_cloud_restore"),
+                    enabled = !isProcessing,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Restaurar Dados Neste Celular")
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Section 3: Optional Manual JSON Transport
+                TextButton(
+                    onClick = { showAdvancedJson = !showAdvancedJson },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (showAdvancedJson) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (showAdvancedJson) "Ocultar Importação Manual (.json)" else "Opções Avançadas: Arquivo Backup (.json)",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+
+                if (showAdvancedJson) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = customJsonInput,
+                        onValueChange = { customJsonInput = it },
+                        label = { Text("Cole o Código de Backup JSON aqui") },
+                        placeholder = { Text("Opcional: se tiver um arquivo de backup em texto...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .testTag("input_custom_json_backup"),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Fechar") }
         }
     )
 }

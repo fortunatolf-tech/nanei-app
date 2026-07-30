@@ -144,6 +144,99 @@ fun LgpdPrivacyScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    var showFullPolicyDialog by remember { mutableStateOf(false) }
+
+                    OutlinedButton(
+                        onClick = { showFullPolicyDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Article, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Ler Política de Privacidade na Íntegra")
+                    }
+
+                    if (showFullPolicyDialog) {
+                        val fullPolicyText = """
+                            POLÍTICA DE PRIVACIDADE E PROTEÇÃO DE DADOS — NANEI
+                            Última atualização: 30 de Julho de 2026
+
+                            1. APRESENTAÇÃO E COMPROMISSO
+                            O Nanei (disponível via aplicativo móvel e web em nanei.com.br) é uma plataforma dedicada ao acompanhamento da gestação, maternidade e cuidados com o bebê. Respeitamos rigorosamente a privacidade dos pais, gestantes, convidados e crianças, atuando em total conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018).
+
+                            2. TRATAMENTO DE DADOS DE CRIANÇAS E BEBÊS (ART. 14 DA LGPD)
+                            O tratamento de dados pessoais de bebês e recém-nascidos (como nome, data de nascimento, medidas corporais, hábitos de sono e amamentação) é realizado exclusivamente em seu melhor interesse e mediante o consentimento específico e em destaque fornecido por pelo menos um dos pais ou responsável legal no momento da criação do perfil no aplicativo.
+
+                            3. DADOS PESSOAIS COLETADOS
+                            • Dados do Responsável: Nome completo, endereço de e-mail, foto de perfil (opcional) e credenciais de acesso.
+                            • Dados do Bebê / Gestação: Idade gestacional, batimentos, sintomas, registros de amamentação, fraldas, rotina de sono e diário da mamãe.
+                            • Dados do Chá de Bebê & Eventos: Nome do evento, data, endereço, lista de convidados (nome, telefone, status de presença RSVP) e itens de presentes reservados.
+                            • Dados Técnicos e Logs: Endereço IP, tipo de dispositivo, registros de auditoria de segurança (AuditLog) e tokens de notificação.
+
+                            4. FINALIDADES DO TRATAMENTO
+                            Os dados são utilizados estritamente para:
+                            a) Permitir a gestão diária dos cuidados com o bebê e saúde materna;
+                            b) Sincronizar o Chá de Bebê com a página web customizada no nanei.com.br;
+                            c) Oferecer suporte e insights personalizados via Assistente IA Gemini (dados pseudonimizados sem uso para treino público);
+                            d) Gerar relatórios exportáveis e o Livro de Memórias em formato PDF.
+
+                            5. COMPARTILHAMENTO E SEGURANÇA DOS DADOS
+                            • Criptografia: Todas as comunicações utilizam protocolo seguro TLS 1.3 (HTTPS) e dados sensíveis são armazenados com criptografia de ponta AES-256.
+                            • Terceiros: O Nanei NÃO vende nem comercializa dados pessoais com anunciantes. O compartilhamento ocorre apenas com provedores de infraestrutura estritamente necessários para manter o serviço funcionando.
+
+                            6. SEUS DIREITOS COMO TITULAR (ART. 18 DA LGPD)
+                            Você pode a qualquer momento no aplicativo:
+                            • Confirmar a existência e acessar todos os seus dados;
+                            • Solicitar a exportação completa em formato CSV/JSON;
+                            • Revogar consentimentos e alterar permissões de uso;
+                            • Solicitar a exclusão definitiva da conta e purga integral dos dados (efetuada no prazo de até 30 dias).
+
+                            7. ATALHOS DA TELA INICIAL (APP SHORTCUTS) E ACESSIBILIDADE RÁPIDA
+                            • Como Usar: Pressione e segure o ícone do Nanei na tela inicial do Android para acessar atalhos rápidos ("Nova Mamada", "IA Nanei", "Troca de Fralda" e "Chá de Bebê").
+                            • Importância da Atualização: Manter os atalhos atualizados assegura resposta imediata nos momentos mais críticos dos cuidados com o bebê e integração completa com recursos de acessibilidade (TalkBack e comandos de voz).
+
+                            8. CONTATO DO ENCARREGADO DE DADOS (DPO)
+                            Em caso de dúvidas sobre esta Política ou para exercer seus direitos de privacidade:
+                            E-mail: privacidade@nanei.com.br / suporte@nanei.com.br
+                            Website: https://nanei.com.br
+                        """.trimIndent()
+
+                        AlertDialog(
+                            onDismissRequest = { showFullPolicyDialog = false },
+                            title = { Text("Política de Privacidade Nanei") },
+                            text = {
+                                Column(modifier = Modifier.height(350.dp).verticalScroll(rememberScrollState())) {
+                                    Text(
+                                        text = fullPolicyText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            confirmButton = {
+                                Row {
+                                    TextButton(
+                                        onClick = {
+                                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                            val clip = android.content.ClipData.newPlainText("Política de Privacidade Nanei", fullPolicyText)
+                                            clipboard.setPrimaryClip(clip)
+                                            android.widget.Toast.makeText(context, "Política de privacidade copiada!", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Copiar Texto")
+                                    }
+                                    TextButton(onClick = { showFullPolicyDialog = false }) {
+                                        Text("Fechar")
+                                    }
+                                }
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Button(
                         onClick = { showDeleteConfirmDialog = true },
                         modifier = Modifier.fillMaxWidth(),

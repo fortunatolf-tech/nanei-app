@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="shortcut_feeding"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_feeding"
+        android:shortcutShortLabel="@string/shortcut_feeding_short"
+        android:shortcutLongLabel="@string/shortcut_feeding_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.aistudio.nanei.app"
+            android:targetClass="com.example.MainActivity">
+            <extra
+                android:name="shortcut_action"
+                android:value="LOG_FEEDING" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="shortcut_ai"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_ai"
+        android:shortcutShortLabel="@string/shortcut_ai_short"
+        android:shortcutLongLabel="@string/shortcut_ai_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.aistudio.nanei.app"
+            android:targetClass="com.example.MainActivity">
+            <extra
+                android:name="shortcut_action"
+                android:value="OPEN_AI" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="shortcut_journal"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_journal"
+        android:shortcutShortLabel="@string/shortcut_journal_short"
+        android:shortcutLongLabel="@string/shortcut_journal_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.aistudio.nanei.app"
+            android:targetClass="com.example.MainActivity">
+            <extra
+                android:name="shortcut_action"
+                android:value="OPEN_JOURNAL" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="shortcut_diaper"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_diaper"
+        android:shortcutShortLabel="@string/shortcut_diaper_short"
+        android:shortcutLongLabel="@string/shortcut_diaper_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.aistudio.nanei.app"
+            android:targetClass="com.example.MainActivity">
+            <extra
+                android:name="shortcut_action"
+                android:value="LOG_DIAPER" />
+        </intent>
+    </shortcut>
+</shortcuts>

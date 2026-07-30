@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">Nanei</string>
+
+    <!-- App Shortcuts -->
+    <string name="shortcut_feeding_short">Nova Mamada</string>
+    <string name="shortcut_feeding_long">Registrar nova mamada ou mamadeira</string>
+    <string name="shortcut_ai_short">Assistente IA</string>
+    <string name="shortcut_ai_long">Conversar com o Assistente IA do Nanei</string>
+    <string name="shortcut_journal_short">Diário</string>
+    <string name="shortcut_journal_long">Abrir o Diário da Mamãe e Acompanhamento</string>
+    <string name="shortcut_diaper_short">Troca de Fralda</string>
+    <string name="shortcut_diaper_long">Registrar troca de fralda</string>
+    <string name="shortcut_shower_short">Chá de Bebê</string>
+    <string name="shortcut_shower_long">Ver lista de convidados e presentes</string>
 </resources>
