@@ -26,8 +26,6 @@ fun HealthScreen(
     filteredDrugs: List<DrugInfo>,
     onSearchQueryChange: (String) -> Unit,
     onToggleMilestone: (Milestone) -> Unit,
-    isPremiumUser: Boolean,
-    onOpenPaywall: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedHealthTab by remember { mutableStateOf(0) } // 0: Análises, 1: Marcos, 2: Fármacos
@@ -72,8 +70,6 @@ fun HealthScreen(
                 0 -> AnalyticsScreen(
                     baby = baby,
                     events = events,
-                    isPremiumUser = isPremiumUser,
-                    onOpenPaywall = onOpenPaywall,
                     modifier = Modifier.fillMaxSize()
                 )
                 1 -> DevelopmentScreen(
@@ -86,8 +82,6 @@ fun HealthScreen(
                     searchQuery = searchQuery,
                     filteredDrugs = filteredDrugs,
                     onSearchQueryChange = onSearchQueryChange,
-                    isPremiumUser = isPremiumUser,
-                    onOpenPaywall = onOpenPaywall,
                     modifier = Modifier.fillMaxSize()
                 )
             }

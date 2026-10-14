@@ -629,13 +629,13 @@ fun FamilyManagementDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Troca de Celular & Backup Nuvem ☁️",
+                                text = "Troca de Celular & Backup ☁️",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
-                                text = "Recuperação automática de dados para assinantes Premium.",
+                                text = "Faça backup dos dados e restaure em um novo celular.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -867,17 +867,15 @@ fun SoundListenModeDialog(
 }
 
 /**
- * Backup em Nuvem e Recuperação de Dados para Troca de Celular (Recurso Premium)
+ * Backup local e Recuperação de Dados para Troca de Celular.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CloudBackupRestoreDialog(
     userEmail: String,
-    isPremiumUser: Boolean,
     lastBackupTimeMs: Long,
     onPerformBackup: ((Boolean, String) -> Unit) -> Unit,
     onRestoreBackup: (String, String?, (Boolean, String) -> Unit) -> Unit,
-    onOpenPaywall: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var restoreEmailInput by remember { mutableStateOf(userEmail) }
@@ -893,7 +891,7 @@ fun CloudBackupRestoreDialog(
             val sdf = java.text.SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", java.util.Locale.getDefault())
             sdf.format(java.util.Date(lastBackupTimeMs))
         } else {
-            "Nenhum backup em nuvem registrado nesta conta"
+            "Nenhum backup registrado neste dispositivo"
         }
     }
 
@@ -920,42 +918,23 @@ fun CloudBackupRestoreDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Account & Premium Status Card
+                // Account & Backup Status Card
                 Surface(
-                    color = if (isPremiumUser) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Conta: ${userEmail.ifBlank { "usuario@nanei.app" }}",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Surface(
-                                color = if (isPremiumUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                Text(
-                                    text = if (isPremiumUser) "PREMIUM ✨" else "FREE 🔒",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
+                        Text(
+                            text = "Conta: ${userEmail.ifBlank { "usuario@nanei.app" }}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold
+                        )
 
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "Último backup em nuvem: $formattedLastBackup",
+                            text = "Último backup: $formattedLastBackup",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -963,45 +942,6 @@ fun CloudBackupRestoreDialog(
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
-
-                if (!isPremiumUser) {
-                    // Paywall Callout for Free Users
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOpenPaywall() }
-                            .testTag("btn_upgrade_for_cloud_backup"),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Recurso Exclusivo Nanei Premium",
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                                Text(
-                                    text = "Toque aqui para assinar o Plano Premium e liberar o backup e recuperação automática em múltiplos aparelhos.",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-                }
 
                 // Status Alert Card (if any operation performed)
                 if (statusMessage != null) {
@@ -1033,13 +973,13 @@ fun CloudBackupRestoreDialog(
 
                 // Section 1: Backup Current Phone Data
                 Text(
-                    text = "1. Salvar Dados na Nuvem (Celular Atual)",
+                    text = "1. Salvar Backup (Neste Celular)",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Envia uma cópia completa de bebês, rotina de amamentação, vacinas e diário para o seu e-mail.",
+                    text = "Salva uma cópia completa de bebês, rotina de amamentação, vacinas e diário neste dispositivo. Use as opções avançadas para copiar o código e levar para outro aparelho.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1063,7 +1003,7 @@ fun CloudBackupRestoreDialog(
                 ) {
                     Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Fazer Backup em Nuvem Agora")
+                    Text("Fazer Backup Agora")
                 }
 
                 Spacer(modifier = Modifier.height(18.dp))
@@ -1078,7 +1018,7 @@ fun CloudBackupRestoreDialog(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Digite o e-mail cadastrado no seu aparelho antigo para puxar todo o histórico salvo.",
+                    text = "Se o backup foi feito neste aparelho, restaure direto pelo botão abaixo. Para trazer dados de outro celular, cole o código JSON do backup nas opções avançadas.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
