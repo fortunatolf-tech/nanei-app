@@ -23,7 +23,6 @@ import com.example.data.model.Event
 import com.example.data.model.Sender
 import kotlinx.coroutines.launch
 
-import com.example.ui.components.AdBannerCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,8 +33,6 @@ fun AiAssistantScreen(
     onConfirmPendingEvents: (List<Event>) -> Unit,
     onCancelPendingEvents: () -> Unit,
     onOpenLgpdPortal: () -> Unit,
-    isPremiumUser: Boolean = false,
-    onOpenPaywall: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var inputText by remember { mutableStateOf("") }
@@ -86,15 +83,6 @@ fun AiAssistantScreen(
         }
 
         Spacer(modifier = Modifier.height(12.dp))
-
-        if (!isPremiumUser) {
-            AdBannerCard(
-                onRemoveAdsClick = onOpenPaywall,
-                sponsorTitle = "Nanei AI Pro • Voz & Insights",
-                sponsorText = "Assine o Nanei Premium para conversas e transcrições mais rápidas sem interrupções."
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
 
         // Chat Thread
         LazyColumn(

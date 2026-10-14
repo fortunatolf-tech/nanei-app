@@ -29,7 +29,6 @@ import com.example.data.model.Baby
 import com.example.data.model.Event
 import com.example.data.model.EventType
 import com.example.data.model.SweetSpotPrediction
-import com.example.ui.components.AdBannerCard
 import com.example.ui.components.EventItemCard
 import com.example.ui.components.QuickActionGrid
 import com.example.ui.components.SweetSpotCard
@@ -52,8 +51,6 @@ fun HomeScreen(
     onOpenSoundListenDialog: () -> Unit = {},
     onOpenCloudBackupDialog: () -> Unit = {},
     onOpenOnboarding: () -> Unit = {},
-    isPremiumUser: Boolean = false,
-    onOpenPaywall: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isBabyDropdownExpanded by remember { mutableStateOf(false) }
@@ -190,7 +187,7 @@ fun HomeScreen(
                         Icon(
                             imageVector = Icons.Default.CloudSync,
                             contentDescription = "Backup em Nuvem / Troca de Celular",
-                            tint = if (isPremiumUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
 
@@ -202,17 +199,6 @@ fun HomeScreen(
                             imageVector = Icons.Default.GraphicEq,
                             contentDescription = "Modo Escuta",
                             tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onOpenPaywall,
-                        modifier = Modifier.testTag("btn_topbar_premium")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "Nanei Premium",
-                            tint = if (isPremiumUser) androidx.compose.ui.graphics.Color(0xFFFFD700) else MaterialTheme.colorScheme.primary
                         )
                     }
 
@@ -268,15 +254,6 @@ fun HomeScreen(
                 QuickActionGrid(
                     onActionClick = onLogActionClick
                 )
-            }
-
-            // 2.5 Ad Banner for Free Users
-            if (!isPremiumUser) {
-                item {
-                    AdBannerCard(
-                        onRemoveAdsClick = onOpenPaywall
-                    )
-                }
             }
 
             // 3. Timeline Filter Chips

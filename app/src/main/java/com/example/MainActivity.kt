@@ -46,10 +46,8 @@ class MainActivity : ComponentActivity() {
             val isAiLoading by viewModel.isAiLoading.collectAsStateWithLifecycle()
             val activeLogDialogType by viewModel.activeLogDialogType.collectAsStateWithLifecycle()
             val isNightModeForce by viewModel.isNightModeForce.collectAsStateWithLifecycle()
-            val isPremiumUser by viewModel.isPremiumUser.collectAsStateWithLifecycle()
             val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
             val userEmail by viewModel.userEmail.collectAsStateWithLifecycle()
-            val showPaywallDialog by viewModel.showPaywallDialog.collectAsStateWithLifecycle()
             val showOnboarding by viewModel.showOnboarding.collectAsStateWithLifecycle()
             val showFamilyDialog by viewModel.showFamilyDialog.collectAsStateWithLifecycle()
             val showSoundListenDialog by viewModel.showSoundListenDialog.collectAsStateWithLifecycle()
@@ -211,8 +209,6 @@ class MainActivity : ComponentActivity() {
                                 onOpenSoundListenDialog = { viewModel.openSoundListenDialog() },
                                 onOpenCloudBackupDialog = { viewModel.openCloudBackupDialog() },
                                 onOpenOnboarding = { viewModel.openOnboarding() },
-                                isPremiumUser = isPremiumUser,
-                                onOpenPaywall = { viewModel.openPaywall() },
                                 modifier = screenModifier
                             )
                             NaneiDestination.BABY_SHOWER -> BabyShowerScreen(
@@ -239,8 +235,6 @@ class MainActivity : ComponentActivity() {
                                 filteredDrugs = filteredDrugs,
                                 onSearchQueryChange = { query -> viewModel.setDrugSearchQuery(query) },
                                 onToggleMilestone = { milestone -> viewModel.toggleMilestone(milestone) },
-                                isPremiumUser = isPremiumUser,
-                                onOpenPaywall = { viewModel.openPaywall() },
                                 modifier = screenModifier
                             )
                             NaneiDestination.MOM_JOURNAL -> PregnancyAndJournalScreen(
@@ -266,8 +260,6 @@ class MainActivity : ComponentActivity() {
                                 onConfirmPendingEvents = { eventsToSave -> viewModel.confirmPendingEvents(eventsToSave) },
                                 onCancelPendingEvents = { viewModel.cancelPendingEvents() },
                                 onOpenLgpdPortal = { showLgpdScreen = true },
-                                isPremiumUser = isPremiumUser,
-                                onOpenPaywall = { viewModel.openPaywall() },
                                 modifier = screenModifier
                             )
                         }
@@ -284,17 +276,6 @@ class MainActivity : ComponentActivity() {
                             onSaveEvent = { event -> viewModel.logEvent(event) }
                         )
                     }
-                }
-
-                // Nanei Premium Paywall & Ad-Free Subscription Dialog
-                if (showPaywallDialog) {
-                    NaneiPaywallDialog(
-                        isPremiumActive = isPremiumUser,
-                        onDismiss = { viewModel.closePaywall() },
-                        onPurchasePlan = { plan -> viewModel.purchasePremium(plan) },
-                        onRestorePurchases = { viewModel.restorePurchases() },
-                        onToggleTestMode = { viewModel.togglePremiumForTesting() }
-                    )
                 }
 
                 // F1 — Onboarding e Consentimento
@@ -330,15 +311,13 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Premium Cloud Backup & Phone Switch Restore
+                // Cloud Backup & Phone Switch Restore
                 if (showCloudBackupDialog) {
                     CloudBackupRestoreDialog(
                         userEmail = userEmail,
-                        isPremiumUser = isPremiumUser,
                         lastBackupTimeMs = lastCloudBackupTimeMs,
                         onPerformBackup = { callback: (Boolean, String) -> Unit -> viewModel.performCloudBackup(callback) },
                         onRestoreBackup = { targetEmail: String, customJson: String?, callback: (Boolean, String) -> Unit -> viewModel.restoreCloudBackup(targetEmail, customJson, callback) },
-                        onOpenPaywall = { viewModel.openPaywall() },
                         onDismiss = { viewModel.closeCloudBackupDialog() }
                     )
                 }

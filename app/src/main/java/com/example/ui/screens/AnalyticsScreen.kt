@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.Baby
 import com.example.data.model.Event
 import com.example.data.model.EventType
-import com.example.ui.components.AdBannerCard
 import com.example.util.PdfReportGenerator
 import java.util.Calendar
 
@@ -52,8 +51,6 @@ data class ChartBarData(
 fun AnalyticsScreen(
     baby: Baby?,
     events: List<Event>,
-    isPremiumUser: Boolean = false,
-    onOpenPaywall: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -325,15 +322,6 @@ fun AnalyticsScreen(
                 // Routine Insights & AI Summary Card
                 RoutineInsightsCard(babyName = baby?.name ?: "Bebê")
             }
-        }
-
-        // Ad Banner for Free Users
-        if (!isPremiumUser) {
-            AdBannerCard(
-                onRemoveAdsClick = onOpenPaywall,
-                sponsorTitle = "Nestlé Baby & Me",
-                sponsorText = "Suporte nutricional e conteúdos valiosos para cada etapa do desenvolvimento do seu bebê."
-            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))

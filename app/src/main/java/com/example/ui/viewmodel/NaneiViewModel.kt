@@ -161,15 +161,8 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
     private val _isNightModeForce = MutableStateFlow<Boolean?>(null)
     val isNightModeForce: StateFlow<Boolean?> = _isNightModeForce.asStateFlow()
 
-    // Monetization & Premium Ad-Free State
-    private val prefs = application.getSharedPreferences("nanei_monetization_prefs", android.content.Context.MODE_PRIVATE)
-    private val _isPremiumUser = MutableStateFlow(prefs.getBoolean("key_is_premium", false))
-    val isPremiumUser: StateFlow<Boolean> = _isPremiumUser.asStateFlow()
-
-    private val _showPaywallDialog = MutableStateFlow(false)
-    val showPaywallDialog: StateFlow<Boolean> = _showPaywallDialog.asStateFlow()
-
     // Persistent Login & Account State
+    private val prefs = application.getSharedPreferences("nanei_monetization_prefs", android.content.Context.MODE_PRIVATE)
     private val _isLoggedIn = MutableStateFlow(
         prefs.getBoolean("key_is_logged_in", false) || prefs.getBoolean("key_onboarding_completed", false)
     )
@@ -194,7 +187,7 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
     private val _showSoundListenDialog = MutableStateFlow(false)
     val showSoundListenDialog: StateFlow<Boolean> = _showSoundListenDialog.asStateFlow()
 
-    // Cloud Backup & Phone Switch Recovery (Premium Feature)
+    // Cloud Backup & Phone Switch Recovery
     private val _showCloudBackupDialog = MutableStateFlow(false)
     val showCloudBackupDialog: StateFlow<Boolean> = _showCloudBackupDialog.asStateFlow()
 
@@ -342,40 +335,6 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    fun openPaywall() {
-        _showPaywallDialog.value = true
-    }
-
-    fun closePaywall() {
-        _showPaywallDialog.value = false
-    }
-
-    fun purchasePremium(plan: String) {
-        prefs.edit().putBoolean("key_is_premium", true).apply()
-        _isPremiumUser.value = true
-        _showPaywallDialog.value = false
-        _chatMessages.value = _chatMessages.value + ChatMessage(
-            sender = Sender.SYSTEM,
-            text = "🎉 Parabéns! Sua assinatura Nanei Premium ($plan) foi ativada com sucesso. Todos os anúncios foram removidos!"
-        )
-    }
-
-    fun restorePurchases() {
-        prefs.edit().putBoolean("key_is_premium", true).apply()
-        _isPremiumUser.value = true
-        _showPaywallDialog.value = false
-        _chatMessages.value = _chatMessages.value + ChatMessage(
-            sender = Sender.SYSTEM,
-            text = "✨ Suas compras foram restauradas com sucesso. Acesso Nanei Premium ativo!"
-        )
-    }
-
-    fun togglePremiumForTesting() {
-        val next = !_isPremiumUser.value
-        prefs.edit().putBoolean("key_is_premium", next).apply()
-        _isPremiumUser.value = next
-    }
-
     fun performLogin(email: String) {
         val cleanEmail = if (email.isBlank()) "usuario@nanei.app" else email.trim()
         prefs.edit()
@@ -429,12 +388,6 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun performCloudBackup(onResult: (Boolean, String) -> Unit) {
-        if (!_isPremiumUser.value) {
-            _showPaywallDialog.value = true
-            onResult(false, "O Backup em Nuvem e Troca de Celular é um recurso exclusivo do Plano Nanei Premium.")
-            return
-        }
-
         viewModelScope.launch {
             try {
                 val babies = repository.getAllBabiesSync()
@@ -464,7 +417,7 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
                 _lastCloudBackupTimeMs.value = now
                 onResult(
                     true,
-                    "Backup em nuvem realizado com sucesso! ${babies.size} bebê(s), ${events.size} evento(s) e ${_momJournalEntries.value.size} registro(s) do diário salvos no servidor seguro."
+                    "Backup realizado com sucesso! ${babies.size} bebê(s), ${events.size} evento(s) e ${_momJournalEntries.value.size} registro(s) do diário salvos neste dispositivo. Guarde também uma cópia exportada em local seguro."
                 )
             } catch (e: Exception) {
                 onResult(false, "Falha ao realizar backup em nuvem: ${e.message}")
@@ -473,17 +426,11 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun restoreCloudBackup(targetEmail: String, customJson: String? = null, onResult: (Boolean, String) -> Unit) {
-        if (!_isPremiumUser.value) {
-            _showPaywallDialog.value = true
-            onResult(false, "A Restauração de Dados em novo celular é um recurso exclusivo do Plano Nanei Premium.")
-            return
-        }
-
         viewModelScope.launch {
             try {
                 val jsonStr = if (!customJson.isNullOrBlank()) customJson else prefs.getString("key_cloud_backup_json", null)
                 if (jsonStr.isNullOrBlank()) {
-                    onResult(false, "Nenhum backup em nuvem foi encontrado para o e-mail '${targetEmail}'. Faça o backup no celular antigo primeiro ou importe um arquivo .json.")
+                    onResult(false, "Nenhum backup foi encontrado neste dispositivo. Faça o backup primeiro ou cole um arquivo .json nas opções avançadas.")
                     return@launch
                 }
 

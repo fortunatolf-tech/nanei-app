@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.DrugInfo
-import com.example.ui.components.AdBannerCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,8 +27,6 @@ fun MedicationScreen(
     searchQuery: String,
     filteredDrugs: List<DrugInfo>,
     onSearchQueryChange: (String) -> Unit,
-    isPremiumUser: Boolean = false,
-    onOpenPaywall: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -112,16 +109,6 @@ fun MedicationScreen(
                     ExternalWebSearchCard(
                         query = searchQuery,
                         onOpenUrl = { url -> safeOpenUrl(context, url) }
-                    )
-                }
-            }
-
-            if (!isPremiumUser) {
-                item {
-                    AdBannerCard(
-                        onRemoveAdsClick = onOpenPaywall,
-                        sponsorTitle = "Johnson's Baby • Cuidado Completo",
-                        sponsorText = "Fórmulas suaves e testadas por pediatras para o banho e hidratação do seu bebê."
                     )
                 }
             }
