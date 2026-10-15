@@ -74,13 +74,6 @@ fun BabyShowerScreen(
     var newGiftPrice by remember { mutableStateOf("50") }
     var newGiftUrl by remember { mutableStateOf("") }
 
-    // State for web preview simulation RSVP modal inside Tab 2
-    var simGuestName by remember { mutableStateOf("") }
-    var simAdults by remember { mutableStateOf("1") }
-    var simChildren by remember { mutableStateOf("0") }
-    var simSelectedGiftId by remember { mutableStateOf<String?>(null) }
-    var simSuccessToast by remember { mutableStateOf(false) }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -135,14 +128,14 @@ fun BabyShowerScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = if (isSyncing) Icons.Default.Sync else Icons.Default.CloudDone,
+                                imageVector = if (isSyncing) Icons.Default.Sync else if (event.isSyncedWithWeb) Icons.Default.CloudDone else Icons.Default.CloudOff,
                                 contentDescription = "Sync",
                                 tint = if (event.isSyncedWithWeb) Color(0xFF166534) else Color(0xFF854D0E),
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = if (isSyncing) "Sincronizando..." else "Web Sync OK",
+                                text = if (isSyncing) "Sincronizando..." else if (event.isSyncedWithWeb) "Página no ar" else "Não publicado",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = if (event.isSyncedWithWeb) Color(0xFF166534) else Color(0xFF854D0E)
                             )
@@ -182,7 +175,7 @@ fun BabyShowerScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "AES-256 e LGPD OK",
+                            text = "Dados protegidos • LGPD",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                             color = Color(0xFF0284C7)
                         )
@@ -214,15 +207,15 @@ fun BabyShowerScreen(
             Tab(
                 selected = selectedTab == 2,
                 onClick = { selectedTab = 2 },
-                text = { Text("3. Protótipo & Testes", style = MaterialTheme.typography.labelLarge) },
-                icon = { Icon(Icons.Default.Devices, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                text = { Text("3. Publicação & Sync", style = MaterialTheme.typography.labelLarge) },
+                icon = { Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp)) },
                 modifier = Modifier.testTag("tab_baby_shower_prototype")
             )
             Tab(
                 selected = selectedTab == 3,
                 onClick = { selectedTab = 3 },
-                text = { Text("4. Doc Técnica & API", style = MaterialTheme.typography.labelLarge) },
-                icon = { Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                text = { Text("4. Como Funciona", style = MaterialTheme.typography.labelLarge) },
+                icon = { Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp)) },
                 modifier = Modifier.testTag("tab_baby_shower_doc")
             )
         }
@@ -252,29 +245,15 @@ fun BabyShowerScreen(
                     onUpdateGuestStatus = onUpdateGuestStatus,
                     onDeleteGuest = onDeleteGuest
                 )
-                2 -> TabPrototypeAndTests(
+                2 -> TabPublishAndSync(
                     event = event,
                     guests = guests,
                     gifts = gifts,
                     syncLogs = syncLogs,
                     isSyncing = isSyncing,
-                    onRunSyncTests = onRunSyncTests,
-                    onSimulateRsvp = { name, adults, children, giftId ->
-                        val guest = BabyShowerGuest(
-                            eventId = event.id,
-                            name = name,
-                            status = RsvpStatus.CONFIRMED,
-                            adultsCount = adults,
-                            childrenCount = children,
-                            assignedGiftTitle = gifts.find { it.id == giftId }?.title
-                        )
-                        onAddGuest(guest)
-                        if (giftId != null) {
-                            onToggleGiftReservation(giftId, name)
-                        }
-                    }
+                    onRunSyncTests = onRunSyncTests
                 )
-                3 -> TabTechnicalDoc()
+                3 -> TabHowItWorks()
             }
         }
     }
@@ -463,12 +442,12 @@ private fun TabLinkAndEvent(
                         }
                         Surface(
                             shape = CircleShape,
-                            color = Color(0xFF22C55E).copy(alpha = 0.2f)
+                            color = if (event.isSyncedWithWeb) Color(0xFF22C55E).copy(alpha = 0.2f) else Color(0xFFFEF3C7)
                         ) {
                             Text(
-                                text = "ONLINE",
+                                text = if (event.isSyncedWithWeb) "PUBLICADO" else "NÃO PUBLICADO",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFF15803D),
+                                color = if (event.isSyncedWithWeb) Color(0xFF15803D) else Color(0xFF854D0E),
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -476,6 +455,29 @@ private fun TabLinkAndEvent(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
+                    if (!event.isSyncedWithWeb) {
+                        // Ainda não publicado: explica como gerar o link em vez
+                        // de mostrar uma URL que não existe no ar.
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = CardDefaults.outlinedCardBorder()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "Sua página ainda não está no ar.",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF854D0E)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Preencha as informações do evento abaixo e toque em \"Sincronizar agora\" na aba 3. Publicação & Sync para gerar o link oficial do seu chá de bebê.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surface,
@@ -548,6 +550,7 @@ private fun TabLinkAndEvent(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Compartilhar")
                         }
+                    }
                     }
                 }
             }
@@ -637,155 +640,6 @@ private fun TabLinkAndEvent(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                }
-            }
-        }
-
-        // --- Web Site Integration Settings Card ---
-        item {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
-                border = CardDefaults.outlinedCardBorder()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Dns, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "🌐 Conexão com Seu Site (nanei.com.br / Domínio Próprio)",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = "Configure o endereço web e a chave de API para vincular seu aplicativo Nanei diretamente ao seu site existente em produção.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    OutlinedTextField(
-                        value = event.baseUrl,
-                        onValueChange = { onUpdateEvent(event.copy(baseUrl = it)) },
-                        label = { Text("Domínio / URL Base do Seu Site") },
-                        placeholder = { Text("https://nanei.com.br/cha-de-bebe/") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = event.webhookUrl,
-                        onValueChange = { onUpdateEvent(event.copy(webhookUrl = it)) },
-                        label = { Text("URL do Webhook do Seu Site (RSVP Sync)") },
-                        placeholder = { Text("https://seusite.com.br/api/v1/webhooks/rsvp") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = event.apiKey,
-                        onValueChange = { onUpdateEvent(event.copy(apiKey = it)) },
-                        label = { Text("Chave de Integração API Key") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "Códigos de Incorporação Prontos para o Seu Site:",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-
-                    // Code Snippet 1: JS Embed Script
-                    val scriptSnippet = """<script src="${if (event.baseUrl.endsWith("/")) event.baseUrl else "${event.baseUrl}/"}sdk/v1/nanei.js" data-event-slug="${event.customSlug}" data-api-key="${event.apiKey}"></script>
-<div id="nanei-cha-de-bebe"></div>"""
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF1E293B),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Script Javascript / Embed HTML",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Color(0xFF38BDF8)
-                                )
-                                TextButton(
-                                    onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("Nanei Script Embed", scriptSnippet)
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, "Código JS copiado para a área de transferência!", Toast.LENGTH_SHORT).show()
-                                    }
-                                ) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Copiar JS", color = Color.White, style = MaterialTheme.typography.labelSmall)
-                                }
-                            }
-                            Text(
-                                text = scriptSnippet,
-                                style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                                color = Color(0xFFF1F5F9)
-                            )
-                        }
-                    }
-
-                    // Code Snippet 2: Iframe Embed
-                    val iframeSnippet = """<iframe src="${event.fullWebUrl}?embed=true" width="100%" height="700" style="border:none; border-radius:12px;"></iframe>"""
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF1E293B),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Iframe Responsivo",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Color(0xFF34D399)
-                                )
-                                TextButton(
-                                    onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("Nanei Iframe Embed", iframeSnippet)
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, "Código Iframe copiado!", Toast.LENGTH_SHORT).show()
-                                    }
-                                ) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Copiar Iframe", color = Color.White, style = MaterialTheme.typography.labelSmall)
-                                }
-                            }
-                            Text(
-                                text = iframeSnippet,
-                                style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                                color = Color(0xFFF1F5F9)
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -1059,6 +913,11 @@ private fun TabInvitationAndSending(
 
         // --- Multi-channel Sharing Tools ---
         item {
+            val linkOuAviso = if (event.isSyncedWithWeb) {
+                event.fullWebUrl
+            } else {
+                "(publique a página na aba \"3. Publicação & Sync\" para gerar o link de confirmação)"
+            }
             val formattedMsg = """
                 ${event.themeStyle.emoji} *${event.title}*
                 
@@ -1068,7 +927,7 @@ private fun TabInvitationAndSending(
                 📍 *Local:* ${event.locationName} (${event.address})
                 
                 🎁 *Lista de Presentes & Confirmação de Presença (RSVP):*
-                ${event.fullWebUrl}
+                $linkOuAviso
                 
                 Esperamos por você! ❤️
             """.trimIndent()
@@ -1086,6 +945,20 @@ private fun TabInvitationAndSending(
                         text = "2. Enviar Convite aos Cuidadores e Convidados",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
+
+                    if (!event.isSyncedWithWeb) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFEF3C7)
+                        ) {
+                            Text(
+                                text = "⚠️ O link de confirmação ainda não existe. Sincronize na aba \"3. Publicação & Sync\" antes de enviar os convites.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF854D0E),
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
 
                     Button(
                         onClick = {
@@ -1219,11 +1092,11 @@ private fun TabInvitationAndSending(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = guest.name,
+                                            text = if (guest.source == "web") "🌐 ${guest.name}" else guest.name,
                                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                                         )
                                         Text(
-                                            text = "${guest.adultsCount} Adulto(s) • ${guest.childrenCount} Criança(s)${if (!guest.assignedGiftTitle.isNullOrEmpty()) " • Presente: ${guest.assignedGiftTitle}" else ""}",
+                                            text = "${guest.adultsCount} Adulto(s) • ${guest.childrenCount} Criança(s)${if (!guest.assignedGiftTitle.isNullOrEmpty()) " • Presente: ${guest.assignedGiftTitle}" else ""}${if (guest.source == "web") " • via página web" else ""}${if (!guest.dietaryRestrictions.isNullOrBlank()) " • ⚠️ ${guest.dietaryRestrictions}" else ""}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -1254,29 +1127,24 @@ private fun TabInvitationAndSending(
     }
 }
 
-// --- TAB 3: Protótipo Navegável Web e Suíte de Testes ---
+// --- TAB 3: Publicação da página no site e sincronização real ---
 @Composable
-private fun TabPrototypeAndTests(
+private fun TabPublishAndSync(
     event: BabyShowerEvent,
     guests: List<BabyShowerGuest>,
     gifts: List<BabyShowerGift>,
     syncLogs: List<SyncTestLog>,
     isSyncing: Boolean,
-    onRunSyncTests: () -> Unit,
-    onSimulateRsvp: (String, Int, Int, String?) -> Unit
+    onRunSyncTests: () -> Unit
 ) {
-    var simGuestName by remember { mutableStateOf("") }
-    var simAdults by remember { mutableStateOf("2") }
-    var simChildren by remember { mutableStateOf("1") }
-    var simGiftId by remember { mutableStateOf<String?>(null) }
-    var simSubmitted by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        // --- Web Prototype Landing Page Simulation ---
+        // --- Status da página pública ---
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -1284,171 +1152,79 @@ private fun TabPrototypeAndTests(
                 border = CardDefaults.outlinedCardBorder()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Protótipo Navegável do Convite Web",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-
-                        Surface(
-                            shape = CircleShape,
-                            color = Color(0xFFE0F2FE)
-                        ) {
-                            Text(
-                                text = "nanei.com.br",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFF0369A1),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (event.isSyncedWithWeb) Icons.Default.CloudDone else Icons.Default.CloudUpload,
+                            contentDescription = null,
+                            tint = if (event.isSyncedWithWeb) Color(0xFF166534) else MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (event.isSyncedWithWeb) "Sua página está no ar 🎉" else "Publique sua página na internet",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
                     }
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Text(
-                        text = "Simule a experiência exata que seus convidados veem ao abrir o link do evento.",
+                        text = if (event.isSyncedWithWeb)
+                            "Os convidados já podem confirmar presença e reservar presentes em:"
+                        else
+                            "Ao sincronizar, criamos uma página linda do seu chá de bebê no site www.nanei.com.br, com confirmação de presença (RSVP) e lista de presentes. Você recebe as confirmações aqui no app a cada sincronização.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Simulated Web Browser Frame
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFF8FAFC),
-                        border = CardDefaults.outlinedCardBorder(),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            // Browser Bar Mock
+                    if (event.isSyncedWithWeb) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                        ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFFE2E8F0), shape = RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF166534), modifier = Modifier.size(12.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "https://nanei.com.br/cha-de-bebe/${event.customSlug}",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                                    color = Color(0xFF334155),
+                                    text = event.fullWebUrl,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = "Confirmação de Presença Online (RSVP)",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFF0F172A)
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            OutlinedTextField(
-                                value = simGuestName,
-                                onValueChange = { simGuestName = it },
-                                label = { Text("Seu Nome Completo") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = simAdults,
-                                    onValueChange = { simAdults = it },
-                                    label = { Text("Adultos") },
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f)
                                 )
-                                OutlinedTextField(
-                                    value = simChildren,
-                                    onValueChange = { simChildren = it },
-                                    label = { Text("Crianças") },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = "Escolher Presente da Lista:",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-
-                            val availableGifts = gifts.filter { !it.isReserved }
-                            if (availableGifts.isEmpty()) {
-                                Text("Todos os presentes já foram escolhidos!", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                            } else {
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(availableGifts) { gift ->
-                                        val isSel = simGiftId == gift.id
-                                        FilterChip(
-                                            selected = isSel,
-                                            onClick = { simGiftId = if (isSel) null else gift.id },
-                                            label = { Text(gift.title, style = MaterialTheme.typography.labelSmall) }
-                                        )
+                                IconButton(
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        clipboard.setPrimaryClip(ClipData.newPlainText("Link Chá de Bebê Nanei", event.fullWebUrl))
+                                        Toast.makeText(context, "Link copiado!", Toast.LENGTH_SHORT).show()
                                     }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Button(
-                                onClick = {
-                                    if (simGuestName.isNotBlank()) {
-                                        onSimulateRsvp(
-                                            simGuestName,
-                                            simAdults.toIntOrNull() ?: 1,
-                                            simChildren.toIntOrNull() ?: 0,
-                                            simGiftId
-                                        )
-                                        simSubmitted = true
-                                        simGuestName = ""
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null)
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Simular Envio do Convidado (Web -> App)")
-                            }
-
-                            if (simSubmitted) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Surface(
-                                    color = Color(0xFFDCFCE7),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(
-                                        text = "✅ Presença confirmada via web com sucesso! O app reflete em tempo real.",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = Color(0xFF166534),
-                                        modifier = Modifier.padding(8.dp)
-                                    )
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", modifier = Modifier.size(16.dp))
                                 }
                             }
+                        }
+                        if (event.lastSyncedAtMs > 0) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Última sincronização: " + SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(Date(event.lastSyncedAtMs)),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
         }
 
-        // --- Real-time Integration Test Suite Runner ---
+        // --- Botão de sincronização + histórico real ---
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -1461,13 +1237,13 @@ private fun TabPrototypeAndTests(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Suíte de Testes de Integração Real-Time",
+                                text = "Sincronização com o site",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = "Validação completa entre App e nanei.com.br",
+                                text = "Envia suas alterações e busca novas confirmações",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1481,9 +1257,9 @@ private fun TabPrototypeAndTests(
                             if (isSyncing) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
                             } else {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Executar Testes")
+                                Text("Sincronizar")
                             }
                         }
                     }
@@ -1492,7 +1268,7 @@ private fun TabPrototypeAndTests(
 
                     if (syncLogs.isEmpty()) {
                         Text(
-                            text = "Clique em 'Executar Testes' para verificar os endpoints REST, autenticação SSO e WebSocket de nanei.com.br.",
+                            text = "Toque em \"Sincronizar\" para publicar sua página. Cada etapa é verificada de verdade e o resultado aparece aqui.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1546,12 +1322,34 @@ private fun TabPrototypeAndTests(
                 }
             }
         }
+
+        // --- Dica de uso ---
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                border = CardDefaults.outlinedCardBorder()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "💡 Dica",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Sincronize sempre que alterar informações do evento, a lista de convidados ou os presentes — e também para buscar as confirmações feitas pelos convidados na página.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }
 
-// --- TAB 4: Documentação Técnica & Guias de Manutenção da API ---
+// --- TAB 4: Como funciona (explicação honesta da arquitetura real) ---
 @Composable
-private fun TabTechnicalDoc() {
+private fun TabHowItWorks() {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -1568,77 +1366,66 @@ private fun TabTechnicalDoc() {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "📚 Documentação Técnica de Arquitetura",
+                        text = "📚 Como funciona a página do seu chá de bebê",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
 
                     Text(
-                        text = "Visão geral da API REST, sincronização WebSocket em tempo real e modelo de segurança unificado entre o aplicativo móvel Android e o portal nanei.com.br.",
+                        text = "O Nanei cria uma página exclusiva do seu evento na internet, sem você precisar saber nada de tecnologia.",
                         style = MaterialTheme.typography.bodyMedium
                     )
 
                     Divider()
 
                     Text(
-                        text = "1. Endpoints Principais da API (nanei.com.br)",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        text = "1. Você prepara tudo no app",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
                     )
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF1E293B),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = """
-                                POST /api/v1/auth/sso
-                                Header: Authorization: Bearer <jwt_token>
-                                
-                                PUT /api/v1/events/{slug}
-                                Payload: {
-                                  "slug": "gabriel-2026",
-                                  "title": "Chá de Bebê do Gabriel 🍼",
-                                  "parents": "Juliana & Ricardo",
-                                  "date_ms": 1790000000000,
-                                  "location": "Espaço Villa Baby",
-                                  "theme": "ROSA_SOFT"
-                                }
-                                
-                                POST /api/v1/rsvp
-                                Payload: {
-                                  "event_slug": "gabriel-2026",
-                                  "guest_name": "Mariana Silva",
-                                  "adults": 2,
-                                  "children": 1,
-                                  "gift_id": "gift-101"
-                                }
-                            """.trimIndent(),
-                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                            color = Color(0xFFF1F5F9),
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-
                     Text(
-                        text = "2. Sincronização em Tempo Real (WebSocket)",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Text(
-                        text = "O aplicativo estabelece uma conexão persistente WebSocket em `wss://nanei.com.br/ws/events`. Sempre que um convidado confirma presença no site ou escolhe um presente da lista, um evento `RSVP_UPDATED` é emitido via socket e o banco de dados Room local é atualizado instantaneamente via Kotlin Flow.",
+                        text = "Informações do evento, estilo do convite, lista de convidados e de presentes ficam salvos no seu aparelho — funcionam mesmo sem internet.",
                         style = MaterialTheme.typography.bodySmall
                     )
 
                     Text(
-                        text = "3. Segurança e Privacidade (LGPD & AES-256)",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        text = "2. A sincronização publica sua página",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Ao tocar em \"Sincronizar\", o app envia os dados de forma segura (HTTPS) para www.nanei.com.br e sua página fica disponível no link www.nanei.com.br/cha-de-bebe/seu-evento.",
+                        style = MaterialTheme.typography.bodySmall
                     )
 
                     Text(
-                        text = "Todas as informações sensíveis dos convidados e dos pais são criptografadas em trânsito via TLS 1.3 e armazenadas com algoritmo AES-256 no backend. A plataforma garante total suporte ao direito de exclusão e exportação previstos na Lei Geral de Proteção de Dados (LGPD).",
+                        text = "3. Os convidados interagem pela página",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Quem recebe o link pode confirmar presença (com número de acompanhantes e restrições alimentares) e reservar presentes da lista — sem instalar nada e sem criar conta.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+
+                    Text(
+                        text = "4. Você recebe as novidades no app",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "A cada sincronização, o app baixa as confirmações e reservas feitas na página. Convidados que vieram do site aparecem marcados com 🌐 na sua lista.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+
+                    Divider()
+
+                    Text(
+                        text = "🔒 Privacidade",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Somente os dados do evento que você escolheu publicar vão para o site. As informações de saúde e rotina do seu bebê ficam apenas no seu aparelho, conforme nossa Política de Privacidade (LGPD).",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

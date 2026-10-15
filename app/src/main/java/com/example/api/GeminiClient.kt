@@ -1,44 +1,24 @@
 package com.example.api
 
 import android.util.Log
-import com.example.BuildConfig
 import com.example.data.model.Event
 import com.example.data.model.EventType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
 
 object GeminiClient {
 
     private const val TAG = "GeminiClient"
-    private const val MODEL_NAME = "gemini-3.5-flash"
-    private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/$MODEL_NAME:generateContent"
 
     /**
-     * Checks if Gemini API Key is configured in BuildConfig.
+     * Desde a v5 a IA passa pelo proxy do servidor (www.nanei.com.br/api/ia),
+     * então o app não precisa mais de chave de API embutida — a chave do
+     * Gemini fica protegida no servidor. Se o proxy estiver indisponível
+     * (sem internet ou servidor sem chave), o app usa o modo offline local.
      */
-    fun isKeyConfigured(): Boolean {
-        return try {
-            val key = BuildConfig.GEMINI_API_KEY
-            key.isNotBlank() && key != "MY_GEMINI_API_KEY"
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    private fun getApiKey(): String {
-        return try {
-            BuildConfig.GEMINI_API_KEY
-        } catch (e: Exception) {
-            ""
-        }
-    }
+    fun isKeyConfigured(): Boolean = true
 
     /**
      * Parse natural language voice/text input into structured Event objects.
@@ -105,7 +85,7 @@ object GeminiClient {
         val disclaimer = "\n\n⚠️ *Nota:* Esta resposta tem caráter informativo baseado nos registros e não substitui orientação médica."
 
         if (!isKeyConfigured()) {
-            return@withContext "O assistente Gemini não está configurado com chave de API. No entanto, com base no seu histórico recente: $recentEventsSummary $disclaimer"
+            return@withContext "O assistente online está temporariamente indisponível. Com base no seu histórico recente: $recentEventsSummary $disclaimer"
         }
 
         val systemInstruction = "Você é Nanei, uma assistente carinhosa, empática, especialista em cuidados infantis, amamentação, sono do bebê e desenvolvimento. Responda em português de forma clara, acolhedora e direta."
@@ -130,67 +110,16 @@ object GeminiClient {
             val answer = callGeminiRestApi(prompt)
             "$answer $disclaimer"
         } catch (e: Exception) {
-            Log.e(TAG, "Error querying Gemini", e)
-            "Desculpe, ocorreu um problema ao consultar o assistente Gemini. Com base nos seus registros: $recentEventsSummary $disclaimer"
+            Log.e(TAG, "Error querying IA proxy", e)
+            "Desculpe, o assistente online está indisponível no momento (verifique sua internet). Com base nos seus registros: $recentEventsSummary $disclaimer"
         }
     }
 
-    private fun callGeminiRestApi(prompt: String): String {
-        val apiKey = getApiKey()
-        val urlString = "$BASE_URL?key=$apiKey"
-        val url = URL(urlString)
-        val conn = url.openConnection() as HttpURLConnection
-        conn.requestMethod = "POST"
-        conn.setRequestProperty("Content-Type", "application/json")
-        conn.connectTimeout = 30000
-        conn.readTimeout = 30000
-        conn.doOutput = true
-
-        val requestJson = JSONObject().apply {
-            val contentsArray = JSONArray().apply {
-                val contentObj = JSONObject().apply {
-                    val partsArray = JSONArray().apply {
-                        put(JSONObject().put("text", prompt))
-                    }
-                    put("parts", partsArray)
-                }
-                put(contentObj)
-            }
-            put("contents", contentsArray)
-        }
-
-        OutputStreamWriter(conn.outputStream).use { writer ->
-            writer.write(requestJson.toString())
-            writer.flush()
-        }
-
-        val responseCode = conn.responseCode
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            val reader = BufferedReader(InputStreamReader(conn.inputStream))
-            val sb = StringBuilder()
-            var line: String?
-            while (reader.readLine().also { line = it } != null) {
-                sb.append(line)
-            }
-            reader.close()
-
-            val responseObj = JSONObject(sb.toString())
-            val candidates = responseObj.optJSONArray("candidates")
-            if (candidates != null && candidates.length() > 0) {
-                val firstCand = candidates.getJSONObject(0)
-                val content = firstCand.optJSONObject("content")
-                val parts = content?.optJSONArray("parts")
-                if (parts != null && parts.length() > 0) {
-                    return parts.getJSONObject(0).optString("text", "")
-                }
-            }
-            return ""
-        } else {
-            val errorStream = conn.errorStream
-            val errorText = errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-            Log.e(TAG, "Gemini API Error $responseCode: $errorText")
-            throw RuntimeException("Gemini API Error $responseCode")
-        }
+    private suspend fun callGeminiRestApi(prompt: String): String {
+        // Transporte único da IA: proxy no servidor do Nanei. A chave do
+        // Gemini não fica no APK — qualquer falha lança exceção e o caller
+        // usa o modo offline local (fallbackParseText / mensagem padrão).
+        return NaneiApi.aiProxy(prompt)
     }
 
     private fun parseEventsFromJsonResponse(babyId: Long, jsonStr: String): List<Event> {

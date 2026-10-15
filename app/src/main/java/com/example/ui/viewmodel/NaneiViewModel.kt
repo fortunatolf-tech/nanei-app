@@ -3,13 +3,14 @@ package com.example.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.api.NaneiApi
 import com.example.data.backup.NaneiBackupManager
 import com.example.data.backup.NaneiCloudBackupPayload
+import com.example.data.local.BabyShowerStore
 import com.example.data.local.NaneiDatabase
 import com.example.data.model.*
 import com.example.data.provider.NaneiStaticData
 import com.example.data.repository.NaneiRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -480,26 +481,10 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
     private val _babyShowerEvent = MutableStateFlow(BabyShowerEvent())
     val babyShowerEvent: StateFlow<BabyShowerEvent> = _babyShowerEvent.asStateFlow()
 
-    private val _babyShowerGuests = MutableStateFlow<List<BabyShowerGuest>>(
-        listOf(
-            BabyShowerGuest(eventId = _babyShowerEvent.value.id, name = "Mariana Silva", phoneOrEmail = "(11) 98888-1111", status = RsvpStatus.CONFIRMED, adultsCount = 2, childrenCount = 1, assignedGiftTitle = "Kit Fralda Pampers M"),
-            BabyShowerGuest(eventId = _babyShowerEvent.value.id, name = "Tia Lúcia & Tio Paulo", phoneOrEmail = "(11) 97777-2222", status = RsvpStatus.CONFIRMED, adultsCount = 2, childrenCount = 0, assignedGiftTitle = "Carrinho de Bebê Reclinável"),
-            BabyShowerGuest(eventId = _babyShowerEvent.value.id, name = "Carla Souza", phoneOrEmail = "carla@email.com", status = RsvpStatus.PENDING, adultsCount = 1, childrenCount = 0),
-            BabyShowerGuest(eventId = _babyShowerEvent.value.id, name = "Roberto Santos", phoneOrEmail = "(11) 96666-3333", status = RsvpStatus.CONFIRMED, adultsCount = 1, childrenCount = 2, assignedGiftTitle = "Kit Higiene Banho")
-        )
-    )
+    private val _babyShowerGuests = MutableStateFlow<List<BabyShowerGuest>>(emptyList())
     val babyShowerGuests: StateFlow<List<BabyShowerGuest>> = _babyShowerGuests.asStateFlow()
 
-    private val _babyShowerGifts = MutableStateFlow<List<BabyShowerGift>>(
-        listOf(
-            BabyShowerGift(eventId = _babyShowerEvent.value.id, title = "Kit Fralda Pampers M", category = "Fraldas", isReserved = true, reservedByGuestName = "Mariana Silva", priceEstimate = 65.0),
-            BabyShowerGift(eventId = _babyShowerEvent.value.id, title = "Carrinho de Bebê Reclinável", category = "Móveis & Acessórios", isReserved = true, reservedByGuestName = "Tia Lúcia & Tio Paulo", priceEstimate = 850.0),
-            BabyShowerGift(eventId = _babyShowerEvent.value.id, title = "Kit Higiene Banho (Shampoo + Sabonete)", category = "Higiene", isReserved = true, reservedByGuestName = "Roberto Santos", priceEstimate = 45.0),
-            BabyShowerGift(eventId = _babyShowerEvent.value.id, title = "Jogo de Lençol Berço 100% Algodão", category = "Roupas", isReserved = false, priceEstimate = 90.0),
-            BabyShowerGift(eventId = _babyShowerEvent.value.id, title = "Mamadeira 260ml Anti-Cólica", category = "Acessórios", isReserved = false, priceEstimate = 55.0),
-            BabyShowerGift(eventId = _babyShowerEvent.value.id, title = "Cota de R$ 100 no Fundo do Bebê", category = "Cota em R$", isReserved = false, priceEstimate = 100.0)
-        )
-    )
+    private val _babyShowerGifts = MutableStateFlow<List<BabyShowerGift>>(emptyList())
     val babyShowerGifts: StateFlow<List<BabyShowerGift>> = _babyShowerGifts.asStateFlow()
 
     private val _syncTestLogs = MutableStateFlow<List<SyncTestLog>>(emptyList())
@@ -508,26 +493,63 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
     private val _isShowerSyncing = MutableStateFlow(false)
     val isShowerSyncing: StateFlow<Boolean> = _isShowerSyncing.asStateFlow()
 
+    init {
+        // Carrega o chá de bebê salvo no aparelho (antes da v5 os dados
+        // eram simulados em memória e se perdiam ao fechar o app).
+        BabyShowerStore.load(getApplication())?.let { saved ->
+            _babyShowerEvent.value = saved.event
+            _babyShowerGuests.value = saved.guests
+            _babyShowerGifts.value = saved.gifts
+        }
+    }
+
+    /** Persiste o estado atual do chá de bebê no armazenamento local. */
+    private fun persistShower() {
+        BabyShowerStore.save(
+            getApplication(),
+            _babyShowerEvent.value,
+            _babyShowerGuests.value,
+            _babyShowerGifts.value
+        )
+    }
+
+    /** Marca que há alterações locais ainda não publicadas no site. */
+    private fun markShowerDirty() {
+        if (_babyShowerEvent.value.isSyncedWithWeb) {
+            _babyShowerEvent.value = _babyShowerEvent.value.copy(isSyncedWithWeb = false)
+        }
+    }
+
     fun updateBabyShowerEvent(newEvent: BabyShowerEvent) {
-        _babyShowerEvent.value = newEvent.copy(lastSyncedAtMs = System.currentTimeMillis())
+        _babyShowerEvent.value = newEvent
+        markShowerDirty()
+        persistShower()
     }
 
     fun addBabyShowerGuest(guest: BabyShowerGuest) {
         _babyShowerGuests.value = _babyShowerGuests.value + guest
+        markShowerDirty()
+        persistShower()
     }
 
     fun updateGuestStatus(guestId: String, status: RsvpStatus) {
         _babyShowerGuests.value = _babyShowerGuests.value.map {
             if (it.id == guestId) it.copy(status = status) else it
         }
+        markShowerDirty()
+        persistShower()
     }
 
     fun deleteBabyShowerGuest(guestId: String) {
         _babyShowerGuests.value = _babyShowerGuests.value.filterNot { it.id == guestId }
+        markShowerDirty()
+        persistShower()
     }
 
     fun addBabyShowerGift(gift: BabyShowerGift) {
         _babyShowerGifts.value = _babyShowerGifts.value + gift
+        markShowerDirty()
+        persistShower()
     }
 
     fun toggleGiftReservation(giftId: String, guestName: String?) {
@@ -539,37 +561,111 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
                 )
             } else gift
         }
+        markShowerDirty()
+        persistShower()
     }
 
+    /**
+     * Sincronização real com www.nanei.com.br:
+     *  1. Salva os dados no aparelho
+     *  2. Publica evento + convidados + presentes (POST /api/v1/events/sync)
+     *  3. Baixa RSVPs e reservas feitos na página pública (GET /api/v1/events/manage)
+     *
+     * (Antes da v5 esta função apenas encenava logs falsos com sucesso
+     * garantido — nenhum dado saía do aparelho.)
+     */
     fun runBabyShowerSyncTests() {
         viewModelScope.launch {
             _isShowerSyncing.value = true
             val logs = mutableListOf<SyncTestLog>()
+            fun push(log: SyncTestLog) {
+                logs.add(log)
+                _syncTestLogs.value = logs.toList()
+            }
 
-            logs.add(SyncTestLog(stepName = "1. Autenticação Unificada SSO (nanei.com.br/auth/sso)", latencyMs = 45L, isSuccess = true, details = "Token JWT validado com sucesso para ${_userEmail.value}"))
-            _syncTestLogs.value = logs.toList()
-            delay(300)
+            // 1. Persistência local
+            val t0 = System.currentTimeMillis()
+            persistShower()
+            push(SyncTestLog(
+                stepName = "1. Salvamento local no aparelho",
+                latencyMs = System.currentTimeMillis() - t0,
+                isSuccess = true,
+                details = "Evento, ${_babyShowerGuests.value.size} convidado(s) e ${_babyShowerGifts.value.size} presente(s) gravados no aparelho"
+            ))
 
-            logs.add(SyncTestLog(stepName = "2. Sincronização de Evento (PUT /api/v1/events/sync)", latencyMs = 62L, isSuccess = true, details = "Payload JSON do evento 'gabriel-2026' sincronizado na nuvem"))
-            _syncTestLogs.value = logs.toList()
-            delay(300)
+            // 2. Publicação no site
+            val event = _babyShowerEvent.value
+            val editKey = BabyShowerStore.getEditKey(getApplication())
+            val syncResult = NaneiApi.syncShower(event, _babyShowerGuests.value, _babyShowerGifts.value, editKey)
+            if (!syncResult.ok) {
+                val motivo = when (syncResult.httpCode) {
+                    0 -> "Sem conexão com a internet. Verifique e tente novamente."
+                    401 -> "Versão do app não autorizada neste serviço. Atualize o Nanei."
+                    403 -> "Este evento foi publicado por outro aparelho e não pode ser alterado daqui."
+                    else -> "O servidor respondeu com erro (HTTP ${syncResult.httpCode}). Tente novamente em instantes."
+                }
+                push(SyncTestLog(
+                    stepName = "2. Publicação da página no site",
+                    latencyMs = syncResult.latencyMs,
+                    isSuccess = false,
+                    details = motivo
+                ))
+                _isShowerSyncing.value = false
+                return@launch
+            }
+            push(SyncTestLog(
+                stepName = "2. Publicação da página no site",
+                latencyMs = syncResult.latencyMs,
+                isSuccess = true,
+                details = "Página publicada em ${syncResult.publicUrl}"
+            ))
 
-            logs.add(SyncTestLog(stepName = "3. Sincronização Lista de Presentes (GET/PUT /gifts)", latencyMs = 38L, isSuccess = true, details = "${_babyShowerGifts.value.size} presentes atualizados na plataforma web"))
-            _syncTestLogs.value = logs.toList()
-            delay(300)
+            // Guarda a chave de edição e o slug definitivo devolvidos pelo servidor
+            if (!syncResult.editKey.isNullOrBlank()) {
+                BabyShowerStore.setEditKey(getApplication(), syncResult.editKey)
+            }
+            val slugFinal = syncResult.slug ?: event.effectiveSlug
 
-            logs.add(SyncTestLog(stepName = "4. Receptor de RSVP Real-time WebSocket (wss://nanei.com.br)", latencyMs = 28L, isSuccess = true, details = "Conexão WebSocket ativa. ${_babyShowerGuests.value.size} convidados sincronizados"))
-            _syncTestLogs.value = logs.toList()
-            delay(300)
+            // 3. Baixa RSVPs e reservas feitos na página pública
+            val manage = NaneiApi.fetchManage(slugFinal, BabyShowerStore.getEditKey(getApplication()))
+            if (manage.ok) {
+                val localIds = _babyShowerGuests.value.map { it.id }.toSet()
+                val webNews = manage.guests.filter { it.id !in localIds }
+                if (webNews.isNotEmpty()) {
+                    _babyShowerGuests.value = _babyShowerGuests.value + webNews
+                }
+                val serverGifts = manage.gifts.associateBy { it.id }
+                _babyShowerGifts.value = _babyShowerGifts.value.map { local ->
+                    val remote = serverGifts[local.id]
+                    if (remote != null && remote.isReserved && !local.isReserved) {
+                        local.copy(isReserved = true, reservedByGuestName = remote.reservedByGuestName)
+                    } else local
+                }
+                push(SyncTestLog(
+                    stepName = "3. Confirmações e reservas da página",
+                    latencyMs = manage.latencyMs,
+                    isSuccess = true,
+                    details = if (webNews.isNotEmpty())
+                        "${webNews.size} nova(s) confirmação(ões) recebida(s) do site 🎉"
+                    else
+                        "Nenhuma novidade — confirmações e presentes em dia"
+                ))
+            } else {
+                push(SyncTestLog(
+                    stepName = "3. Confirmações e reservas da página",
+                    latencyMs = manage.latencyMs,
+                    isSuccess = false,
+                    details = "Publicado, mas não foi possível baixar as confirmações (HTTP ${manage.httpCode}). Sincronize de novo."
+                ))
+            }
 
-            logs.add(SyncTestLog(stepName = "5. Validação de Criptografia AES-256 e LGPD Compliance", latencyMs = 15L, isSuccess = true, details = "Chave de criptografia verificada. Dados salvos em conformidade com LGPD"))
-            _syncTestLogs.value = logs.toList()
-
-            _isShowerSyncing.value = false
             _babyShowerEvent.value = _babyShowerEvent.value.copy(
+                customSlug = slugFinal,
                 isSyncedWithWeb = true,
                 lastSyncedAtMs = System.currentTimeMillis()
             )
+            persistShower()
+            _isShowerSyncing.value = false
         }
     }
 }

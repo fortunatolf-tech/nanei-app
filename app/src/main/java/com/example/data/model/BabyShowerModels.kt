@@ -18,27 +18,31 @@ enum class BabyShowerThemeStyle(
 
 data class BabyShowerEvent(
     val id: String = UUID.randomUUID().toString(),
-    val customSlug: String = "gabriel-2026",
-    val title: String = "Chá de Bebê do Gabriel 🍼",
-    val parentsNames: String = "Mamãe Juliana & Papai Ricardo",
+    val customSlug: String = "",
+    val title: String = "",
+    val parentsNames: String = "",
     val eventDateMs: Long = System.currentTimeMillis() + (30L * 24 * 3600 * 1000), // 30 days ahead
     val eventTimeStr: String = "15:00",
-    val locationName: String = "Espaço Villa Baby",
-    val address: String = "Rua das Flores, 123 - Jardins, São Paulo",
-    val mapsUrl: String = "https://maps.google.com/?q=Espaco+Villa+Baby+SP",
+    val locationName: String = "",
+    val address: String = "",
+    val mapsUrl: String = "",
     val themeStyle: BabyShowerThemeStyle = BabyShowerThemeStyle.ROSA_SOFT,
-    val invitationMessage: String = "Querida família e amigos, venham comemorar com a gente a doce espera e abençoar a chegada do nosso Gabriel!",
+    val invitationMessage: String = "",
     val isOnlineEvent: Boolean = false,
     val onlineMeetingUrl: String? = null,
-    val isSyncedWithWeb: Boolean = true,
-    val lastSyncedAtMs: Long = System.currentTimeMillis(),
-    val baseUrl: String = "https://nanei.com.br/cha-de-bebe/",
-    val webhookUrl: String = "https://nanei.com.br/api/v1/webhooks/rsvp",
-    val apiKey: String = "nan_live_9f83a21bc789e02d4",
-    val integrationType: String = "Sincronização Direta REST & Webhook"
+    val isSyncedWithWeb: Boolean = false,
+    val lastSyncedAtMs: Long = 0L
 ) {
+    /**
+     * Slug efetivo usado na URL pública. Se a mãe não escolheu um, o servidor
+     * deriva um a partir do id do evento no primeiro sync — e o app grava o
+     * valor devolvido aqui.
+     */
+    val effectiveSlug: String
+        get() = customSlug.ifBlank { "cha-" + id.filter { it.isLetterOrDigit() }.lowercase().take(8) }
+
     val fullWebUrl: String
-        get() = if (baseUrl.endsWith("/")) "$baseUrl$customSlug" else "$baseUrl/$customSlug"
+        get() = "https://www.nanei.com.br/cha-de-bebe/$effectiveSlug"
 }
 
 enum class RsvpStatus(val label: String, val colorHex: Long) {
@@ -57,7 +61,8 @@ data class BabyShowerGuest(
     val childrenCount: Int = 0,
     val dietaryRestrictions: String? = null,
     val assignedGiftTitle: String? = null,
-    val rsvpTimestampMs: Long = System.currentTimeMillis()
+    val rsvpTimestampMs: Long = System.currentTimeMillis(),
+    val source: String = "app" // "app" (cadastrado pela mãe) ou "web" (RSVP na página pública)
 )
 
 data class BabyShowerGift(

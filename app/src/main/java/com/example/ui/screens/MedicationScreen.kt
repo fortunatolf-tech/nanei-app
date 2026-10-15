@@ -325,7 +325,9 @@ private fun DrugInfoCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                val eLactUrl = buildELactanciaUrl(drug.genericName)
+                // Link direto para a ficha oficial do fármaco no e-lactancia
+                // (cada DrugInfo traz a URL de produto verificada da base).
+                val eLactUrl = drug.eLactanciaUrl
                 val lactMedUrl = buildLactMedUrl(drug.genericName)
                 val anvisaUrl = buildConsultaRemediosUrl(drug.genericName)
 
@@ -410,9 +412,15 @@ private fun safeOpenUrl(context: Context, url: String) {
     }
 }
 
+/**
+ * Busca livre no e-lactancia: o endpoint /search?q= do portal não existe
+ * (retorna 404 — bug encontrado na auditoria de campo). Usamos busca do
+ * Google restrita ao domínio e-lactancia.org, que lista as fichas oficiais
+ * do medicamento pesquisado.
+ */
 private fun buildELactanciaUrl(query: String): String {
-    val clean = Uri.encode(query.replace(Regex("\\(.*?\\)"), "").trim())
-    return "https://e-lactancia.org/search?q=$clean"
+    val clean = Uri.encode("site:e-lactancia.org " + query.replace(Regex("\\(.*?\\)"), "").trim())
+    return "https://www.google.com/search?q=$clean"
 }
 
 private fun buildLactMedUrl(query: String): String {
