@@ -38,15 +38,16 @@ fun OnboardingModal(
     onDismiss: () -> Unit,
     isLoggedIn: Boolean = false,
     userEmail: String = "",
-    onPerformLogin: (email: String) -> Unit = {},
-    onCompleteOnboarding: (babyName: String, birthMs: Long, estMs: Long, gender: String, avatarUri: String?, userEmail: String) -> Unit
+    onPerformSignup: (name: String, email: String, password: String) -> Unit = { _, _, _ -> },
+    onCompleteOnboarding: (babyName: String?, birthMs: Long, estMs: Long, gender: String, avatarUri: String?, userEmail: String, dueDateMs: Long?) -> Unit
 ) {
-    var step by remember { mutableIntStateOf(1) } // 1: Welcome/Auth, 2: Consents, 3: Baby Details, 4: Tour & PWA
+    var step by remember { mutableIntStateOf(1) } // 1: Criar Conta, 2: Consents, 3: Bebê/Gestação (opcional), 4: Tour
 
-    // Form states
+    // Signup form states
+    var motherName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf(userEmail) }
     var password by remember { mutableStateOf("") }
-    var loginSavedSuccess by remember { mutableStateOf(isLoggedIn) }
+    var signupDone by remember { mutableStateOf(isLoggedIn) }
 
     // Consents
     var consentBabyData by remember { mutableStateOf(true) } // MANDATORY LGPD Art. 14
@@ -54,10 +55,31 @@ fun OnboardingModal(
     var consentPhotos by remember { mutableStateOf(true) }
     var consentAnalytics by remember { mutableStateOf(false) }
 
-    // Baby Info
-    var babyName by remember { mutableStateOf("Bebê Nanei") }
+    // Step 3 — escolha opcional: "none" | "baby" | "pregnancy" | "skip"
+    var onboardingPath by remember { mutableStateOf("none") }
+    var babyName by remember { mutableStateOf("") } // sem nome fictício pré-preenchido
+    var birthDateMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var dueDateMs by remember { mutableStateOf<Long?>(null) }
     var gender by remember { mutableStateOf("Ainda não sei") }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    fun pickDate(initialMs: Long, onPicked: (Long) -> Unit) {
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = initialMs }
+        android.app.DatePickerDialog(
+            context,
+            { _, year, month, day ->
+                val picked = java.util.Calendar.getInstance().apply {
+                    set(year, month, day, 12, 0, 0)
+                }
+                onPicked(picked.timeInMillis)
+            },
+            cal.get(java.util.Calendar.YEAR),
+            cal.get(java.util.Calendar.MONTH),
+            cal.get(java.util.Calendar.DAY_OF_MONTH)
+        ).show()
+    }
 
     val photoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -67,8 +89,19 @@ fun OnboardingModal(
         }
     }
 
+    // No primeiro acesso a conta ainda não existe: não deixar fechar o
+    // onboarding sem criar conta. Depois do cadastro (ou ao reabrir pelo
+    // menu), o fechamento é livre.
+    val canDismiss = signupDone
+
+    val dateFormat = remember { java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale("pt", "BR")) }
+
+    val signupFormValid = motherName.isNotBlank() &&
+            email.trim().contains("@") && email.trim().contains(".") &&
+            password.length >= 4
+
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (canDismiss) onDismiss() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface,
         modifier = Modifier.testTag("onboarding_bottom_sheet")
@@ -86,7 +119,7 @@ fun OnboardingModal(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Bem-vindo ao Nanei 💙",
+                    text = "Bem-vinda ao Nanei 💙",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -112,7 +145,7 @@ fun OnboardingModal(
 
             when (step) {
                 1 -> {
-                    // Step 1: Welcome & Account Creation / Persistent Login
+                    // Step 1: Criação de Conta (primeiro acesso cai direto aqui)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
@@ -122,7 +155,7 @@ fun OnboardingModal(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ChildCare,
+                                imageVector = Icons.Default.PersonAdd,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(36.dp)
@@ -132,14 +165,14 @@ fun OnboardingModal(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "Acompanhamento Inteligente de Sono e Cuidados",
+                            text = "Crie sua Conta Nanei",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
 
                         Text(
-                            text = "Sua rotina materna e fraterna mais leve com inteligência artificial e sincronização em tempo real.",
+                            text = "Acompanhamento inteligente de sono, amamentação e gestação — com carinho para você e seu bebê.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -148,7 +181,7 @@ fun OnboardingModal(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Info card explaining login persistence
+                        // Info card: conta local
                         Surface(
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
                             shape = RoundedCornerShape(12.dp),
@@ -166,7 +199,7 @@ fun OnboardingModal(
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
-                                    text = "Login único: após entrar pela 1ª vez, suas credenciais ficam salvas no dispositivo. O app nunca mais pedirá senha!",
+                                    text = "Conta gratuita e protegida neste aparelho: você entra uma única vez e o app nunca mais pede senha.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontWeight = FontWeight.Medium
@@ -176,7 +209,7 @@ fun OnboardingModal(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        if (loginSavedSuccess) {
+                        if (signupDone) {
                             Surface(
                                 color = MaterialTheme.colorScheme.tertiaryContainer,
                                 shape = RoundedCornerShape(12.dp),
@@ -193,7 +226,7 @@ fun OnboardingModal(
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = "Conectado como: ${if (email.isBlank()) userEmail else email}\nSua sessão foi mantida permanentemente neste aparelho.",
+                                        text = "Conta criada para: ${if (email.isBlank()) userEmail else email}\nSua sessão fica salva permanentemente neste aparelho.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                                         fontWeight = FontWeight.Bold
@@ -203,9 +236,20 @@ fun OnboardingModal(
                         }
 
                         OutlinedTextField(
+                            value = motherName,
+                            onValueChange = { motherName = it },
+                            label = { Text("Seu Nome (mãe/pai/responsável)") },
+                            leadingIcon = { Icon(Icons.Default.Face, contentDescription = null) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().testTag("input_onboarding_name")
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            label = { Text("E-mail do Responsável") },
+                            label = { Text("Seu Melhor E-mail") },
                             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth().testTag("input_onboarding_email")
@@ -216,9 +260,10 @@ fun OnboardingModal(
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
-                            label = { Text("Senha Segura") },
+                            label = { Text("Crie uma Senha (mín. 4 caracteres)") },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                             singleLine = true,
+                            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth().testTag("input_onboarding_password")
                         )
 
@@ -226,20 +271,25 @@ fun OnboardingModal(
 
                         Button(
                             onClick = {
-                                val targetEmail = if (email.isBlank()) "usuario@nanei.app" else email.trim()
-                                onPerformLogin(targetEmail)
-                                loginSavedSuccess = true
+                                if (!signupDone) {
+                                    onPerformSignup(motherName.trim(), email.trim(), password)
+                                    signupDone = true
+                                }
                                 step = 2
                             },
+                            enabled = signupDone || signupFormValid,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp)
                                 .testTag("btn_onboarding_step1_next"),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Fazer Login e Salvar no Aparelho", fontWeight = FontWeight.Bold)
+                            Text(
+                                if (signupDone) "Continuar" else "Criar Minha Conta",
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
@@ -307,7 +357,7 @@ fun OnboardingModal(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                if (consentBabyData) "Aceitar e Cadastrar Bebê" else "Obrigatório aceitar dados do bebê",
+                                if (consentBabyData) "Aceitar e Continuar" else "Obrigatório aceitar dados do bebê",
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -315,91 +365,167 @@ fun OnboardingModal(
                 }
 
                 3 -> {
-                    // Step 3: Register Baby Information
+                    // Step 3: Bebê ou Gestação — OPCIONAL (dá para pular e
+                    // cadastrar depois no perfil do app)
                     Column {
                         Text(
-                            text = "Cadastrar seu Bebê",
+                            text = "Quem vamos acompanhar?",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Utilizado para calcular idade corrigida e janelas SweetSpot.",
+                            text = "Etapa opcional: se preferir, pule agora e cadastre depois no perfil do app.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        OutlinedTextField(
-                            value = babyName,
-                            onValueChange = { babyName = it },
-                            label = { Text("Nome do Bebê") },
-                            leadingIcon = { Icon(Icons.Default.Face, contentDescription = null) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth().testTag("input_baby_name")
+                        OnboardingPathCard(
+                            emoji = "🍼",
+                            title = "Meu bebê já nasceu",
+                            subtitle = "Cadastrar nome, nascimento, sexo e foto",
+                            selected = onboardingPath == "baby",
+                            onClick = { onboardingPath = "baby" }
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OnboardingPathCard(
+                            emoji = "🤰",
+                            title = "Estou gestante",
+                            subtitle = "Acompanhar semanas, chutes, contrações e exames",
+                            selected = onboardingPath == "pregnancy",
+                            onClick = { onboardingPath = "pregnancy" }
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        Text("Sexo do Bebê:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(
-                                    selected = gender == "Feminino",
-                                    onClick = { gender = "Feminino" },
-                                    label = { Text("Feminino 👧") }
-                                )
-                                FilterChip(
-                                    selected = gender == "Masculino",
-                                    onClick = { gender = "Masculino" },
-                                    label = { Text("Masculino 👦") }
-                                )
-                            }
-                            FilterChip(
-                                selected = gender == "Ainda não sei",
-                                onClick = { gender = "Ainda não sei" },
-                                label = { Text("Ainda não sei / Surpresa 💛") }
+                        if (onboardingPath == "baby") {
+                            OutlinedTextField(
+                                value = babyName,
+                                onValueChange = { babyName = it },
+                                label = { Text("Nome do Bebê") },
+                                leadingIcon = { Icon(Icons.Default.Face, contentDescription = null) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth().testTag("input_baby_name")
                             )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text("Data de Nascimento:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedButton(
+                                onClick = { pickDate(birthDateMs) { picked -> birthDateMs = picked } },
+                                modifier = Modifier.fillMaxWidth().testTag("btn_pick_birth_date")
+                            ) {
+                                Icon(Icons.Default.CalendarMonth, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(dateFormat.format(java.util.Date(birthDateMs)))
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text("Foto de Perfil do Bebê (Opcional):", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center
+                        if (onboardingPath == "pregnancy") {
+                            Text("Data Provável do Parto (DPP):", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    val initial = dueDateMs ?: (System.currentTimeMillis() + 120L * 24 * 3600 * 1000)
+                                    pickDate(initial) { picked -> dueDateMs = picked }
+                                },
+                                modifier = Modifier.fillMaxWidth().testTag("btn_pick_due_date")
                             ) {
-                                if (photoUri != null) {
-                                    AsyncImage(
-                                        model = photoUri,
-                                        contentDescription = "Foto do Bebê",
-                                        modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.AddAPhoto,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
+                                Icon(Icons.Default.CalendarMonth, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(dueDateMs?.let { dateFormat.format(java.util.Date(it)) } ?: "Toque para escolher a data")
                             }
 
-                            OutlinedButton(
-                                onClick = { photoLauncher.launch("image/*") },
-                                modifier = Modifier.weight(1f).testTag("btn_onboarding_select_photo")
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "A semana gestacional é calculada automaticamente a partir da DPP.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedTextField(
+                                value = babyName,
+                                onValueChange = { babyName = it },
+                                label = { Text("Nome do Bebê (opcional)") },
+                                leadingIcon = { Icon(Icons.Default.Face, contentDescription = null) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth().testTag("input_baby_name")
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        if (onboardingPath == "baby" || onboardingPath == "pregnancy") {
+                            Text("Sexo do Bebê:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    FilterChip(
+                                        selected = gender == "Feminino",
+                                        onClick = { gender = "Feminino" },
+                                        label = { Text("Feminino 👧") }
+                                    )
+                                    FilterChip(
+                                        selected = gender == "Masculino",
+                                        onClick = { gender = "Masculino" },
+                                        label = { Text("Masculino 👦") }
+                                    )
+                                }
+                                FilterChip(
+                                    selected = gender == "Ainda não sei",
+                                    onClick = { gender = "Ainda não sei" },
+                                    label = { Text("Ainda não sei / Surpresa 💛") }
+                                )
+                            }
+                        }
+
+                        if (onboardingPath == "baby") {
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text("Foto de Perfil do Bebê (Opcional):", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text(if (photoUri != null) "Trocar Foto 📸" else "Adicionar Foto / Ultrassom 📸")
+                                Box(
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (photoUri != null) {
+                                        AsyncImage(
+                                            model = photoUri,
+                                            contentDescription = "Foto do Bebê",
+                                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.AddAPhoto,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+
+                                OutlinedButton(
+                                    onClick = { photoLauncher.launch("image/*") },
+                                    modifier = Modifier.weight(1f).testTag("btn_onboarding_select_photo")
+                                ) {
+                                    Text(if (photoUri != null) "Trocar Foto 📸" else "Adicionar Foto / Ultrassom 📸")
+                                }
                             }
                         }
 
@@ -407,13 +533,30 @@ fun OnboardingModal(
 
                         Button(
                             onClick = { step = 4 },
+                            enabled = when (onboardingPath) {
+                                "baby" -> babyName.isNotBlank()
+                                "pregnancy" -> dueDateMs != null
+                                else -> false
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp)
                                 .testTag("btn_onboarding_step3_next"),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Avançar para o Tour", fontWeight = FontWeight.Bold)
+                            Text("Continuar para o Tour", fontWeight = FontWeight.Bold)
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        TextButton(
+                            onClick = {
+                                onboardingPath = "skip"
+                                step = 4
+                            },
+                            modifier = Modifier.fillMaxWidth().testTag("btn_onboarding_skip")
+                        ) {
+                            Text("Pular por agora — cadastrar depois no perfil ➜")
                         }
                     }
                 }
@@ -475,11 +618,37 @@ fun OnboardingModal(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
+                        if (onboardingPath == "skip" || onboardingPath == "none") {
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                            ) {
+                                Text(
+                                    text = "Sem problema! Você pode cadastrar seu bebê ou sua gestação a qualquer momento, pelo perfil dentro do app. 💙",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        }
+
                         Button(
                             onClick = {
-                                val now = System.currentTimeMillis()
-                                val targetEmail = if (email.isBlank()) "usuario@nanei.app" else email.trim()
-                                onCompleteOnboarding(babyName, now, now, gender, photoUri?.toString(), targetEmail)
+                                val targetEmail = email.trim()
+                                when (onboardingPath) {
+                                    "baby" -> onCompleteOnboarding(
+                                        babyName.trim(), birthDateMs, birthDateMs,
+                                        gender, photoUri?.toString(), targetEmail, null
+                                    )
+                                    "pregnancy" -> onCompleteOnboarding(
+                                        babyName.trim().ifBlank { null }, 0L, 0L,
+                                        gender, null, targetEmail, dueDateMs
+                                    )
+                                    else -> onCompleteOnboarding(
+                                        null, 0L, 0L, "UNKNOWN", null, targetEmail, null
+                                    )
+                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -536,6 +705,56 @@ private fun ConsentCardRow(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnboardingPathCard(
+    emoji: String,
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        border = if (selected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = emoji, fontSize = 28.sp)
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }

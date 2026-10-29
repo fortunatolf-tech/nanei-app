@@ -8,6 +8,7 @@ import com.example.data.backup.NaneiBackupManager
 import com.example.data.backup.NaneiCloudBackupPayload
 import com.example.data.local.BabyShowerStore
 import com.example.data.local.NaneiDatabase
+import com.example.data.local.PregnancyStore
 import com.example.data.model.*
 import com.example.data.provider.NaneiStaticData
 import com.example.data.repository.NaneiRepository
@@ -57,54 +58,106 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
     private val _sweetSpot = MutableStateFlow<SweetSpotPrediction?>(null)
     val sweetSpot: StateFlow<SweetSpotPrediction?> = _sweetSpot.asStateFlow()
 
-    // Pregnancy Module State
-    private val _gestationalWeek = MutableStateFlow(24)
+    // Pregnancy Module State — persistido via PregnancyStore (desde a v6;
+    // antes tudo era simulado em memória e se perdia ao fechar o app).
+    private val appContext: Application = application
+
+    /** DPP em ms; null = gestação ainda não registrada. */
+    private val _dueDateMs = MutableStateFlow<Long?>(
+        PregnancyStore.getDueDateMs(application).takeIf { it > 0L }
+    )
+    val dueDateMs: StateFlow<Long?> = _dueDateMs.asStateFlow()
+
+    /** Semana gestacional calculada da DPP; 0 = sem gestação registrada. */
+    private val _gestationalWeek = MutableStateFlow(computeGestationalWeek(_dueDateMs.value))
     val gestationalWeek: StateFlow<Int> = _gestationalWeek.asStateFlow()
 
-    private val _kickSessions = MutableStateFlow<List<KickSession>>(emptyList())
+    private fun computeGestationalWeek(dueMs: Long?): Int {
+        if (dueMs == null) return 0
+        val weeksLeft = ((dueMs - System.currentTimeMillis()) / (7L * 24 * 3600 * 1000)).toInt()
+        return (40 - weeksLeft).coerceIn(1, 42)
+    }
+
+    fun registerPregnancy(dueDateMs: Long) {
+        PregnancyStore.setDueDateMs(appContext, dueDateMs)
+        _dueDateMs.value = dueDateMs
+        _gestationalWeek.value = computeGestationalWeek(dueDateMs)
+    }
+
+    fun clearPregnancy() {
+        PregnancyStore.clearPregnancy(appContext)
+        _dueDateMs.value = null
+        _gestationalWeek.value = 0
+        _kickSessions.value = emptyList()
+        _contractions.value = emptyList()
+    }
+
+    private val _kickSessions = MutableStateFlow<List<KickSession>>(PregnancyStore.loadKickSessions(application))
     val kickSessions: StateFlow<List<KickSession>> = _kickSessions.asStateFlow()
 
-    private val _contractions = MutableStateFlow<List<ContractionEntry>>(emptyList())
+    private val _contractions = MutableStateFlow<List<ContractionEntry>>(PregnancyStore.loadContractions(application))
     val contractions: StateFlow<List<ContractionEntry>> = _contractions.asStateFlow()
 
-    private val _hospitalBagItems = MutableStateFlow<List<HospitalBagItem>>(NaneiStaticData.getDefaultHospitalBag())
+    private val _hospitalBagItems = MutableStateFlow<List<HospitalBagItem>>(
+        NaneiStaticData.getDefaultHospitalBag().map { item ->
+            item.copy(isChecked = item.id in PregnancyStore.loadCheckedIds(application, bag = true))
+        }
+    )
     val hospitalBagItems: StateFlow<List<HospitalBagItem>> = _hospitalBagItems.asStateFlow()
 
-    private val _prenatalExams = MutableStateFlow<List<PrenatalExam>>(NaneiStaticData.getDefaultPrenatalExams())
+    private val _prenatalExams = MutableStateFlow<List<PrenatalExam>>(
+        NaneiStaticData.getDefaultPrenatalExams().map { exam ->
+            exam.copy(isCompleted = exam.id in PregnancyStore.loadCheckedIds(application, bag = false))
+        }
+    )
     val prenatalExams: StateFlow<List<PrenatalExam>> = _prenatalExams.asStateFlow()
 
-    // Mom's Journal State
-    private val _momJournalEntries = MutableStateFlow<List<MomJournalEntry>>(NaneiStaticData.getDefaultMomJournalEntries())
+    // Mom's Journal State — persistido; começa vazio (sem entradas de exemplo)
+    private val _momJournalEntries = MutableStateFlow<List<MomJournalEntry>>(PregnancyStore.loadJournalEntries(application))
     val momJournalEntries: StateFlow<List<MomJournalEntry>> = _momJournalEntries.asStateFlow()
 
     fun addKickSession(count: Int, durationSec: Long) {
         val newSession = KickSession(kickCount = count, durationSeconds = durationSec)
         _kickSessions.value = listOf(newSession) + _kickSessions.value
+        PregnancyStore.saveKickSessions(appContext, _kickSessions.value)
     }
 
     fun addContraction(durationSec: Int, intervalSec: Int) {
         val newEntry = ContractionEntry(durationSeconds = durationSec, intervalSeconds = intervalSec)
         _contractions.value = listOf(newEntry) + _contractions.value
+        PregnancyStore.saveContractions(appContext, _contractions.value)
     }
 
     fun toggleHospitalBagItem(id: String) {
         _hospitalBagItems.value = _hospitalBagItems.value.map {
             if (it.id == id) it.copy(isChecked = !it.isChecked) else it
         }
+        PregnancyStore.saveCheckedIds(
+            appContext,
+            _hospitalBagItems.value.filter { it.isChecked }.map { it.id }.toSet(),
+            bag = true
+        )
     }
 
     fun togglePrenatalExam(id: String) {
         _prenatalExams.value = _prenatalExams.value.map {
             if (it.id == id) it.copy(isCompleted = !it.isCompleted) else it
         }
+        PregnancyStore.saveCheckedIds(
+            appContext,
+            _prenatalExams.value.filter { it.isCompleted }.map { it.id }.toSet(),
+            bag = false
+        )
     }
 
     fun addMomJournalEntry(entry: MomJournalEntry) {
         _momJournalEntries.value = listOf(entry) + _momJournalEntries.value
+        PregnancyStore.saveJournalEntries(appContext, _momJournalEntries.value)
     }
 
     fun deleteMomJournalEntry(entry: MomJournalEntry) {
         _momJournalEntries.value = _momJournalEntries.value.filter { it.id != entry.id }
+        PregnancyStore.saveJournalEntries(appContext, _momJournalEntries.value)
     }
 
     // Navigation state
@@ -170,9 +223,13 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     private val _userEmail = MutableStateFlow(
-        prefs.getString("key_user_email", "usuario@nanei.app") ?: "usuario@nanei.app"
+        prefs.getString("key_user_email", "") ?: ""
     )
     val userEmail: StateFlow<String> = _userEmail.asStateFlow()
+
+    /** Nome da mãe/responsável na conta local do aparelho. */
+    private val _userName = MutableStateFlow(prefs.getString("key_user_name", "") ?: "")
+    val userName: StateFlow<String> = _userName.asStateFlow()
 
     // Onboarding & Consent State (F1)
     private val _showOnboarding = MutableStateFlow(
@@ -196,19 +253,16 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
     val lastCloudBackupTimeMs: StateFlow<Long> = _lastCloudBackupTimeMs.asStateFlow()
 
     init {
-        // Ensure at least one baby exists
-        viewModelScope.launch {
-            val baby = repository.createInitialBabyIfNone()
-            refreshSweetSpot(baby)
-        }
-
-        // Re-calculate SweetSpot whenever events or selected baby change
+        // Nenhum bebê fictício é criado no primeiro acesso (v6): o SweetSpot
+        // só é calculado quando existe um bebê real cadastrado pelo usuário.
         viewModelScope.launch {
             combine(selectedBaby, activeBabyEvents) { baby, _ ->
                 baby
             }.collect { baby ->
                 if (baby != null) {
                     refreshSweetSpot(baby)
+                } else {
+                    _sweetSpot.value = null
                 }
             }
         }
@@ -336,19 +390,27 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    fun performLogin(email: String) {
-        val cleanEmail = if (email.isBlank()) "usuario@nanei.app" else email.trim()
+    /**
+     * Criação de conta do primeiro acesso (v6). A conta é local do
+     * aparelho: nome, e-mail e hash da senha ficam em SharedPreferences —
+     * nada é enviado a servidores. NÃO marca o onboarding como concluído:
+     * isso só acontece no passo final, após consentimentos e a escolha
+     * opcional de cadastrar bebê ou gestação.
+     */
+    fun performSignup(name: String, email: String, password: String) {
+        val cleanEmail = email.trim()
         prefs.edit()
             .putBoolean("key_is_logged_in", true)
-            .putBoolean("key_onboarding_completed", true)
+            .putString("key_user_name", name.trim())
             .putString("key_user_email", cleanEmail)
+            .putString("key_user_password_hash", password.hashCode().toString())
             .apply()
+        _userName.value = name.trim()
         _userEmail.value = cleanEmail
         _isLoggedIn.value = true
-        _showOnboarding.value = false
     }
 
-    fun completeOnboarding(email: String = "") {
+    fun completeOnboarding(email: String = "", dueDateMs: Long? = null) {
         val cleanEmail = if (email.isBlank()) _userEmail.value else email.trim()
         prefs.edit()
             .putBoolean("key_onboarding_completed", true)
@@ -357,6 +419,9 @@ class NaneiViewModel(application: Application) : AndroidViewModel(application) {
             .apply()
         _userEmail.value = cleanEmail
         _isLoggedIn.value = true
+        if (dueDateMs != null) {
+            registerPregnancy(dueDateMs)
+        }
         _showOnboarding.value = false
     }
 

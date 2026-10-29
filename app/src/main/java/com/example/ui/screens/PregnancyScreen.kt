@@ -33,7 +33,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PregnancyScreen(
-    currentWeek: Int = 24,
+    currentWeek: Int = 0,
     kickSessions: List<KickSession>,
     contractions: List<ContractionEntry>,
     hospitalBagItems: List<HospitalBagItem>,
@@ -43,15 +43,97 @@ fun PregnancyScreen(
     onToggleBagItem: (String) -> Unit,
     onToggleExam: (String) -> Unit,
     onNavigateToJournal: () -> Unit,
+    onRegisterPregnancy: (dueDateMs: Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Guia Semanal, 1: Mexidas, 2: Contrações, 3: Mala, 4: Exames
-    var activeWeek by remember { mutableIntStateOf(currentWeek) }
+    var activeWeek by remember { mutableIntStateOf(if (currentWeek in 1..42) currentWeek else 20) }
 
     val weeksData = remember { NaneiStaticData.getPregnancyWeeksData() }
-    val currentWeekInfo = weeksData[activeWeek] ?: weeksData[24]!!
+    val currentWeekInfo = weeksData[activeWeek] ?: weeksData[20]!!
 
     val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale("pt", "BR")) }
+
+    // Sem gestação registrada (v6): nenhuma semana fictícia é exibida.
+    // A gestante registra a DPP e a semana passa a ser calculada de verdade.
+    if (currentWeek <= 0) {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.PregnantWoman,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Módulo de Gravidez 🤰",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            },
+            modifier = modifier.testTag("pregnancy_screen")
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "🤰", fontSize = 52.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Nenhuma gestação registrada",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Informe a Data Provável do Parto (DPP) para acompanhar a semana gestacional, contagem de chutes, contrações, mala de maternidade e exames.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(
+                    onClick = {
+                        val cal = Calendar.getInstance().apply {
+                            timeInMillis = System.currentTimeMillis() + 120L * 24 * 3600 * 1000
+                        }
+                        android.app.DatePickerDialog(
+                            context,
+                            { _, year, month, day ->
+                                val picked = Calendar.getInstance().apply { set(year, month, day, 12, 0, 0) }
+                                onRegisterPregnancy(picked.timeInMillis)
+                            },
+                            cal.get(Calendar.YEAR),
+                            cal.get(Calendar.MONTH),
+                            cal.get(Calendar.DAY_OF_MONTH)
+                        ).show()
+                    },
+                    modifier = Modifier.testTag("btn_register_pregnancy")
+                ) {
+                    Icon(Icons.Default.CalendarMonth, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Registrar Minha Gestação")
+                }
+            }
+        }
+        return
+    }
 
     Scaffold(
         topBar = {

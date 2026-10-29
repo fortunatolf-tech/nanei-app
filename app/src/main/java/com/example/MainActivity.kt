@@ -251,6 +251,7 @@ class MainActivity : ComponentActivity() {
                                 onToggleExam = { id -> viewModel.togglePrenatalExam(id) },
                                 onAddJournalEntry = { entry -> viewModel.addMomJournalEntry(entry) },
                                 onDeleteJournalEntry = { entry -> viewModel.deleteMomJournalEntry(entry) },
+                                onRegisterPregnancy = { dueMs -> viewModel.registerPregnancy(dueMs) },
                                 modifier = screenModifier
                             )
                             NaneiDestination.AI_ASSISTANT -> AiAssistantScreen(
@@ -283,11 +284,15 @@ class MainActivity : ComponentActivity() {
                     OnboardingModal(
                         isLoggedIn = isLoggedIn,
                         userEmail = userEmail,
-                        onPerformLogin = { email -> viewModel.performLogin(email) },
+                        onPerformSignup = { name, email, password -> viewModel.performSignup(name, email, password) },
                         onDismiss = { viewModel.completeOnboarding() },
-                        onCompleteOnboarding = { babyName, birthMs, estMs, gender, avatarUri, email ->
-                            viewModel.addNewBaby(babyName, birthMs, estMs, gender, avatarUri)
-                            viewModel.completeOnboarding(email)
+                        onCompleteOnboarding = { babyName, birthMs, estMs, gender, avatarUri, email, dueDateMs ->
+                            // Bebê e gestação são OPCIONAIS: só cadastra o que
+                            // o usuário escolheu na etapa 3 do onboarding.
+                            if (!babyName.isNullOrBlank()) {
+                                viewModel.addNewBaby(babyName, birthMs, estMs, gender, avatarUri)
+                            }
+                            viewModel.completeOnboarding(email, dueDateMs)
                         }
                     )
                 }

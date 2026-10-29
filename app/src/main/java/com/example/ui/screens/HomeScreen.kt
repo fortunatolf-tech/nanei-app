@@ -24,6 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.model.Baby
 import com.example.data.model.Event
@@ -103,7 +104,7 @@ fun HomeScreen(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = selectedBaby?.name ?: "Meu Bebê",
+                                    text = selectedBaby?.name ?: "Nanei",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -241,21 +242,68 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. SweetSpot Sleep Banner
-            item {
-                SweetSpotCard(
-                    prediction = sweetSpot,
-                    onLogSleepClick = { onLogActionClick(EventType.SLEEP) }
-                )
+            if (selectedBaby == null) {
+                // Estado vazio real: nenhum bebê cadastrado ainda (sem
+                // nenhum dado fictício). CTA direto para o cadastro.
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "👶", fontSize = 44.sp)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Vamos começar?",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Cadastre seu bebê para registrar mamadas, sonecas e fraldas.\nEstá gestante? Acompanhe pela aba Gestação.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = { showAddBabyDialog = true },
+                                modifier = Modifier.testTag("btn_empty_state_add_baby")
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Cadastrar Meu Bebê")
+                            }
+                        }
+                    }
+                }
+            } else {
+                // 1. SweetSpot Sleep Banner
+                item {
+                    SweetSpotCard(
+                        prediction = sweetSpot,
+                        onLogSleepClick = { onLogActionClick(EventType.SLEEP) }
+                    )
+                }
+
+                // 2. Quick Action Grid (1 mão, 2 toques)
+                item {
+                    QuickActionGrid(
+                        onActionClick = onLogActionClick
+                    )
+                }
             }
 
-            // 2. Quick Action Grid (1 mão, 2 toques)
-            item {
-                QuickActionGrid(
-                    onActionClick = onLogActionClick
-                )
-            }
-
+            if (selectedBaby != null) {
             // 3. Timeline Filter Chips
             item {
                 Column {
@@ -355,6 +403,7 @@ fun HomeScreen(
             item {
                 Spacer(modifier = Modifier.height(80.dp)) // Padding for FAB
             }
+            }
         }
     }
 
@@ -377,6 +426,11 @@ private fun AddBabyDialog(
     var name by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("UNKNOWN") }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+    // Recém-nascido por padrão; o usuário ajusta pela data real.
+    var birthDateMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val dateFormat = remember { java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale("pt", "BR")) }
 
     val photoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -398,6 +452,31 @@ private fun AddBabyDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("input_add_baby_name")
                 )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text("Data de Nascimento:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedButton(
+                    onClick = {
+                        val cal = Calendar.getInstance().apply { timeInMillis = birthDateMs }
+                        android.app.DatePickerDialog(
+                            context,
+                            { _, year, month, day ->
+                                val picked = Calendar.getInstance().apply { set(year, month, day, 12, 0, 0) }
+                                birthDateMs = picked.timeInMillis
+                            },
+                            cal.get(Calendar.YEAR),
+                            cal.get(Calendar.MONTH),
+                            cal.get(Calendar.DAY_OF_MONTH)
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("btn_add_baby_birth_date")
+                ) {
+                    Icon(Icons.Default.CalendarMonth, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(dateFormat.format(java.util.Date(birthDateMs)))
+                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -467,16 +546,9 @@ private fun AddBabyDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val babyName = name.ifBlank {
-                        when (gender) {
-                            "FEMALE" -> "Minha Menina"
-                            "MALE" -> "Meu Menino"
-                            else -> "Meu Bebê"
-                        }
-                    }
-                    val birthMs = System.currentTimeMillis() - (90L * 24 * 60 * 60 * 1000L) // default 3 months
-                    onSave(babyName, birthMs, birthMs, gender, photoUri?.toString())
+                    onSave(name.trim(), birthDateMs, birthDateMs, gender, photoUri?.toString())
                 },
+                enabled = name.isNotBlank(),
                 modifier = Modifier.testTag("btn_save_new_baby")
             ) {
                 Text("Cadastrar")

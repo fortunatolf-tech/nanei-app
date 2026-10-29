@@ -32,6 +32,7 @@ fun PregnancyAndJournalScreen(
     onToggleExam: (String) -> Unit,
     onAddJournalEntry: (MomJournalEntry) -> Unit,
     onDeleteJournalEntry: (MomJournalEntry) -> Unit,
+    onRegisterPregnancy: (dueDateMs: Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableStateOf(0) } // 0: Gestação, 1: Diário & Memórias PDF
@@ -76,6 +77,7 @@ fun PregnancyAndJournalScreen(
                     onToggleBagItem = onToggleBagItem,
                     onToggleExam = onToggleExam,
                     onNavigateToJournal = { selectedTab = 1 },
+                    onRegisterPregnancy = onRegisterPregnancy,
                     modifier = Modifier.fillMaxSize()
                 )
                 1 -> MomJournalScreen(

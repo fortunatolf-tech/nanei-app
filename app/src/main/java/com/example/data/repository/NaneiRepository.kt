@@ -22,45 +22,16 @@ class NaneiRepository(private val db: NaneiDatabase) {
     val selectedBaby: Flow<Baby?> = babyDao.getSelectedBaby()
 
     // --- Baby Operations ---
-    suspend fun createInitialBabyIfNone(): Baby {
+    /**
+     * Retorna o bebê atualmente selecionado, ou null quando ainda não há
+     * nenhum cadastrado. Desde a v6 o app NÃO cria mais um bebê fictício
+     * ("Meu Bebê", 1 mês) no primeiro acesso: quem cadastra é o usuário,
+     * no onboarding ou depois, pelo perfil.
+     */
+    suspend fun getSelectedBabyOrNull(): Baby? {
         val currentBabies = allBabies.first()
-        if (currentBabies.isNotEmpty()) {
-            val selected = currentBabies.find { it.isSelected } ?: currentBabies.first()
-            return selected
-        }
-
-        // Create default initial baby
-        val now = Calendar.getInstance()
-        val birthCalendar = Calendar.getInstance().apply {
-            add(Calendar.MONTH, -1)
-        }
-        val estimatedCalendar = Calendar.getInstance().apply {
-            timeInMillis = birthCalendar.timeInMillis
-        }
-
-        val defaultBaby = Baby(
-            name = "Meu Bebê",
-            birthDateMs = birthCalendar.timeInMillis,
-            estimatedDueDateMs = estimatedCalendar.timeInMillis,
-            gender = "UNKNOWN",
-            isSelected = true
-        )
-
-        val babyId = babyDao.insertBaby(defaultBaby)
-
-        // Populate initial milestones
-        val initialMilestones = NaneiStaticData.getStandardMilestones(babyId)
-        milestoneDao.insertMilestones(initialMilestones)
-
-        // Log audit
-        auditLogDao.insertAuditLog(
-            AuditLog(
-                action = "BABY_CREATED",
-                details = "Bebê inicial criado"
-            )
-        )
-
-        return defaultBaby.copy(id = babyId)
+        if (currentBabies.isEmpty()) return null
+        return currentBabies.find { it.isSelected } ?: currentBabies.first()
     }
 
     suspend fun switchSelectedBaby(babyId: Long) {

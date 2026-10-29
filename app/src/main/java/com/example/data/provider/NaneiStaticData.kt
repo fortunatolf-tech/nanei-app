@@ -466,24 +466,26 @@ object NaneiStaticData {
 
     // --- Mala da Maternidade Inicial ---
     fun getDefaultHospitalBag(): List<com.example.data.model.HospitalBagItem> = listOf(
-        com.example.data.model.HospitalBagItem("m1", "Mãe", "3 Camisolas ou pijamas com abertura frontal para amamentar", true),
-        com.example.data.model.HospitalBagItem("m2", "Mãe", "2 Sutiãs de amamentação e absorventes de seio", true),
+        com.example.data.model.HospitalBagItem("m1", "Mãe", "3 Camisolas ou pijamas com abertura frontal para amamentar", false),
+        com.example.data.model.HospitalBagItem("m2", "Mãe", "2 Sutiãs de amamentação e absorventes de seio", false),
         com.example.data.model.HospitalBagItem("m3", "Mãe", "Produtos de higiene pessoal e chinelo para o banho", false),
-        com.example.data.model.HospitalBagItem("b1", "Bebê", "6 Trocas de roupas completas (bodys, mijões e macacões)", true),
-        com.example.data.model.HospitalBagItem("b2", "Bebê", "2 Mantas antialérgicas e fraldinhas de pano/boca", true),
-        com.example.data.model.HospitalBagItem("b3", "Bebê", "1 Pacote de fraldas RN / P e sabonete neutro", true),
+        com.example.data.model.HospitalBagItem("b1", "Bebê", "6 Trocas de roupas completas (bodys, mijões e macacões)", false),
+        com.example.data.model.HospitalBagItem("b2", "Bebê", "2 Mantas antialérgicas e fraldinhas de pano/boca", false),
+        com.example.data.model.HospitalBagItem("b3", "Bebê", "1 Pacote de fraldas RN / P e sabonete neutro", false),
         com.example.data.model.HospitalBagItem("b4", "Bebê", "Roupa para a Saída da Maternidade", false),
         com.example.data.model.HospitalBagItem("a1", "Acompanhante", "Trocas de roupa confortáveis e casaco", false),
-        com.example.data.model.HospitalBagItem("d1", "Documentos", "RG/CPF dos pais, Cartão do Pré-Natal e Carteirinha do Plano", true)
+        com.example.data.model.HospitalBagItem("d1", "Documentos", "RG/CPF dos pais, Cartão do Pré-Natal e Carteirinha do Plano", false)
     )
 
     // --- Exames Pré-Natal Padrão ---
+    // Checklist começa zerado: nenhum exame é fingido como realizado e
+    // as notas descrevem o exame, sem inventar resultados para a gestante.
     fun getDefaultPrenatalExams(): List<com.example.data.model.PrenatalExam> = listOf(
-        com.example.data.model.PrenatalExam("ex1", "Ultrassom Transvaginal Inicial", "6 a 8 semanas", true, "Confirmado batimento cardíaco do embrião"),
-        com.example.data.model.PrenatalExam("ex2", "Ultrassom Morfológico do 1º Trimestre (TN)", "11 a 14 semanas", true, "Translucência nucal normal"),
-        com.example.data.model.PrenatalExam("ex3", "Exames de Sangue e Sorologias (1º Trimestre)", "12 semanas", true, "Tipo sanguíneo A+ e ferro ok"),
-        com.example.data.model.PrenatalExam("ex4", "Ultrassom Morfológico do 2º Trimestre", "20 a 24 semanas", true, "Anatomia perfeita e descoberta do sexo"),
-        com.example.data.model.PrenatalExam("ex5", "Teste de Curva Glicêmica (TOTG)", "24 a 28 semanas", false, "Glicemia de jejum e pós-prandial"),
+        com.example.data.model.PrenatalExam("ex1", "Ultrassom Transvaginal Inicial", "6 a 8 semanas", false, "Confirma a gestação e o batimento cardíaco do embrião"),
+        com.example.data.model.PrenatalExam("ex2", "Ultrassom Morfológico do 1º Trimestre (TN)", "11 a 14 semanas", false, "Mede a translucência nucal e avalia riscos cromossômicos"),
+        com.example.data.model.PrenatalExam("ex3", "Exames de Sangue e Sorologias (1º Trimestre)", "12 semanas", false, "Tipagem sanguínea, ferro e sorologias iniciais"),
+        com.example.data.model.PrenatalExam("ex4", "Ultrassom Morfológico do 2º Trimestre", "20 a 24 semanas", false, "Avalia a anatomia do bebê e permite descobrir o sexo"),
+        com.example.data.model.PrenatalExam("ex5", "Teste de Curva Glicêmica (TOTG)", "24 a 28 semanas", false, "Rastreia diabetes gestacional (jejum e pós-prandial)"),
         com.example.data.model.PrenatalExam("ex6", "Escore de Estreptococo do Grupo B (GBS)", "35 a 37 semanas", false, "Swab vaginal e anal antes do parto")
     )
 
